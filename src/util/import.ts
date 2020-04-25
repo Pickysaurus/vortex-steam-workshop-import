@@ -20,7 +20,7 @@ function importMods(t: Function,
     const installPath = selectors.installPath(store.getState());
     return Promise.mapSeries(mods, (mod, idx, len) => {
         log('debug', 'transferring', mod);
-        const vortexId = `steam-${mod.publishedfileid}`;
+        const vortexId = `steam-${mod.publishedfileid}-${Math.floor(new Date().getTime() / 1000)}`;
         progress(mod.title, idx/len);
         return transferMod(mod, wsBasePath, installPath, vortexId)
             .then(() => Promise.resolve(''))

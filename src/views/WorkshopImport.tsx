@@ -127,7 +127,10 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
         const { workshopPath } = this.state;
         return getWorkshopModData(workshopPath)
             .then((workshopMods: ISteamWorkshopEntry[]) => this.nextState.modsToImport = convertWorkshopMods(workshopMods))
-            .catch(err => this.nextState.error = <p>Error with the steam API {err}</p>);
+            .catch(err => {
+                if (err.code === 'ENOTFOUND') return this.nextState.error = (<span><h3>Steam API could not be reached</h3>Please ensure you have an internet connection to use the feature.</span>)
+            else this.nextState.error = <p>Error with the Steam API {err.code} {err.message}</p>
+            });
     }
 
     private startImport(): Promise<void> {
@@ -324,6 +327,8 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
 
         return(
             <span className='workshop-start'>
+                <img src={`file://${__dirname}/steam-to-vortex.png`} />
+                <h3>{t('Bring your Workshop mods to Vortex')}</h3>
                 {t('This tool will allow you to import mods installed through Steam Workshop into Vortex.')}
                 <div>
                     {t('Before you continue, please be aware of the following:')}
@@ -347,7 +352,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
 
         const perc = Math.floor(progress.perc * 100);
         return(
-            <div className='import-working-container'>
+            <div className='workshop-import-container'>
                 <span>{t('Currently importing: {{mod}}', {replace: { mod: progress.mod } })}</span>
                 <ProgressBar now={perc} label={`${perc}%`} />
             </div>
@@ -377,12 +382,15 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
         const { importModsToDisable } = this.state;
 
         return(
-            <div className='import-working-container'>
+            <div className='workshop-import-container'>
                 <h3>{t('Unsubscribe in Steam Workshop')}</h3>
-                <p>{t('Your Steam Workshop mods have been imported. Before you continue, you need to unsubscribe from the mods to prevent conflicts with the imported copy.')}</p>
+                <p>{t('Your Steam Workshop mods have been imported successfully!')}</p>
+                <p>{t('Before you continue, you need to unsubscribe from the mods to prevent conflicts with the imported copy.')}</p>
                 <p><a href='steam://openurl/https://steamcommunity.com/id/Silly_zombie/myworkshopfiles?browsefilter=mysubscriptions'>{t('See all subscribed mods in Steam')}</a></p>
-                <Button onClick={() => this.setStep('cleanup')}>{t('Refresh')}</Button>
+                <Button className="refresh-btn" onClick={() => this.setStep('cleanup')}>{t('Refresh')}</Button>
+                <div className='import-mods-to-disable'>
                 {this.renderModsToDisable(importModsToDisable)}
+                </div>
             </div>
         );
 
@@ -397,7 +405,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
                 <Row key={mod.publishedfileid}>
                     <Col sm={'2'}><img src={mod.preview_url} style={{maxWidth: '50px', maxHeight: '50px'}} /></Col>
                     <Col sm={'6'}>{mod.title}</Col>
-                    <Col sm={'2'}><Button href={steamAppUrl}>{t('Open in Steam Workshop')}</Button></Col>
+                    <Col sm={'4'}><Button href={steamAppUrl}>{t('Open in Workshop')}</Button></Col>
                 </Row>
             );
         });
@@ -410,7 +418,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
         const { failedImports } = this.state;
 
         return(
-            <div className='import-working-container'>
+            <div className='workshop-import-container'>
                 {failedImports.length === 0
                 ? (<span className='import-success'>
                     <Icon name='feedback-success' />{t('Import successful')}

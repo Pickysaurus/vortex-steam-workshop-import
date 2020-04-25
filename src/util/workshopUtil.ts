@@ -1,7 +1,7 @@
 import { fs, types } from 'vortex-api';
 import * as path from 'path';
 import * as https from 'https';
-import { ISteamWorkshopEntry, IModEntry } from '../types/workshopEntries';
+import { ISteamWorkshopEntry } from '../types/workshopEntries';
 import { IncomingMessage } from 'http';
 import * as querystring from 'querystring';
 
@@ -44,10 +44,12 @@ export function getWorkshopModData(workshopPath: string): Promise<ISteamWorkshop
     
                 req.write(data);
                 req.end();
-            });
+            }).catch(err => Promise.reject(err));
         }
     )
-    .catch(err => Promise.reject(err));
+    .catch(err => {
+        Promise.reject(err);
+    });
 }
 
 function findWorkshopPath(games: {[gameId: string]: types.IDiscoveryResult}, gameId: string, steamAppId: string) : Promise<string> {
