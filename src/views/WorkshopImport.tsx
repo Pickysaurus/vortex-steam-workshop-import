@@ -125,6 +125,14 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
     private setup(): Promise<any> {
         // Tasks to perform before loading the setup step.
         const { workshopPath } = this.state;
+        const vortexState = this.context.api.store.getState();
+        const networkConnected = vortexState.session.base.networkConnected;
+
+        if (!networkConnected) {
+            this.nextState.error = (<span><h2>No network connection</h2>Vortex is currently offline. An internet connection is required to use this feature.</span>);
+            return Promise.resolve();
+        }
+
         return getWorkshopModData(workshopPath)
             .then((workshopMods: ISteamWorkshopEntry[]) => this.nextState.modsToImport = convertWorkshopMods(workshopMods))
             .catch(err => {
