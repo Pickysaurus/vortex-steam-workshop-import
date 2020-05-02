@@ -1,4 +1,4 @@
-import { ComponentEx, selectors, types, util, Modal, Steps, Spinner, Table, ITableRowAction, TableTextFilter, Icon, fs } from 'vortex-api';
+import { ComponentEx, selectors, types, util, Modal, Steps, Spinner, Table, ITableRowAction, TableTextFilter, Icon, fs, tooltip } from 'vortex-api';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as React from 'react';
@@ -125,6 +125,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
     private setup(): Promise<any> {
         // Tasks to perform before loading the setup step.
         const { workshopPath } = this.state;
+        const { mods } = this.props;
         const vortexState = this.context.api.store.getState();
         const networkConnected = vortexState.session.base.networkConnected;
 
@@ -134,7 +135,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
         }
 
         return getWorkshopModData(workshopPath)
-            .then((workshopMods: ISteamWorkshopEntry[]) => this.nextState.modsToImport = convertWorkshopMods(workshopMods))
+            .then((workshopMods: ISteamWorkshopEntry[]) => this.nextState.modsToImport = convertWorkshopMods(workshopMods, mods))
             .catch(err => {
                 if (err.code === 'ENOTFOUND') return this.nextState.error = (<span><h3>Steam API could not be reached</h3>Please ensure you have an internet connection to use the feature.</span>)
             else this.nextState.error = <p>Error with the Steam API {err.code} {err.message}</p>
@@ -355,7 +356,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
 
     private renderWorking(): JSX.Element {
         const { t } = this.props;
-        const { modsToImport, progress } = this.state;
+        const { progress } = this.state;
         if (progress === undefined) return null;
 
         const perc = Math.floor(progress.perc * 100);
@@ -387,7 +388,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
 
     private renderCleanup(): JSX.Element {
         const { t } = this.props;
-        const { importModsToDisable } = this.state;
+        const { importModsToDisable, workshopPath } = this.state;
 
         return(
             <div className='workshop-import-container'>
@@ -399,6 +400,9 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
                 <div className='import-mods-to-disable'>
                 {this.renderModsToDisable(importModsToDisable)}
                 </div>
+                <b>{t('Stuck here?')}</b> 
+                <p>{t('If you\'ve unsubcribed from all the mods but you cannot continue, you\'ll need to delete the leftover folders in your Workshop directory. The folder names are:')} {importModsToDisable.map(m => m.publishedfileid).join(', ')} </p>
+                <a onClick={() => util.opn(workshopPath)}>Open Steam Workshop folder</a>
             </div>
         );
 
@@ -507,6 +511,26 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
                 }
             },
             {
+                id: 'exists',
+                name: 'Already Imported',
+                description: 'Has this mod already been imported?',
+                icon: 'level-up',
+                customRenderer: (mod: ISteamWorkshopEntry, detail: boolean) => {
+                    return mod.isAlreadyManaged ? (
+                        <tooltip.Icon 
+                            id={`already-managed=${mod.publishedfileid}`}
+                            tooltip={'This mod has already been imported. \nImporting it again will overwrite the current entry.'}
+                            name='feedback-warning'
+                        />
+                    ) : null;
+                },
+                calc: mod => mod.isAlreadyManaged,
+                placement: 'table',
+                isToggleable: true,
+                isSortable: true,
+                edit: {}
+            },
+            {
                 id: 'id',
                 name: 'Workshop ID',
                 description: 'The Steam Workshop ID of this mod.',
@@ -530,10 +554,14 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
 
 }
 
-function convertWorkshopMods(mods: ISteamWorkshopEntry[]): {[id: string] : ISteamWorkshopEntry} {
+function convertWorkshopMods(mods: ISteamWorkshopEntry[], vortexMods: {[id: string] : types.IMod}): {[id: string] : ISteamWorkshopEntry} {
     const mappedObject = {};
     if (!mods || !mods.length) return mappedObject;
-    mods.map(mod => mappedObject[mod.publishedfileid] = mod);
+    mods.map(mod => {
+        mappedObject[mod.publishedfileid] = mod
+        if (!!vortexMods[`steam-${mod.publishedfileid}`]) mappedObject[mod.publishedfileid].isAlreadyManaged = true;
+        return mod;
+    });
     return mappedObject;
 }
 

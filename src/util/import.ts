@@ -1,4 +1,3 @@
-import * as I18next from 'i18next';
 import Promise from 'bluebird';
 import * as path from 'path';
 import * as Redux from 'redux';
@@ -20,7 +19,8 @@ function importMods(t: Function,
     const installPath = selectors.installPath(store.getState());
     return Promise.mapSeries(mods, (mod, idx, len) => {
         log('debug', 'transferring', mod);
-        const vortexId = `steam-${mod.publishedfileid}-${Math.floor(new Date().getTime() / 1000)}`;
+        // const vortexId = `steam-${mod.publishedfileid}-${Math.floor(new Date().getTime() / 1000)}`;
+        const vortexId = `steam-${mod.publishedfileid}`;
         progress(mod.title, idx/len);
         return transferMod(mod, wsBasePath, installPath, vortexId)
             .then(() => Promise.resolve(''))

@@ -20,7 +20,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    overflow: hidden;
+    overflow: hidden auto;
 
 
     .refresh-btn {
@@ -48,5 +48,6 @@
 
 .import-mods-to-disable {
     min-height: 10vh;
+    max-height: 20vh;
     overflow-y: scroll;
 }
