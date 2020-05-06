@@ -4,7 +4,7 @@ import WorkshopImport from './views/WorkshopImport';
 
 const supportedGameIds = ['skyrim', 'ahatintime', 'enderal', 'darkestdungeon', 'dawnofman', 'divinityoriginalsin2', 'divinityoriginalsin2definitiveedition', 'faleanniversary', 'galacticcivilisations3', 'kenshi',
                           'kerbalspaceprogram', 'legendofgrimrock', 'mbwarband', 'neverwinternightsenhancededition', 'oxygennotincluded', 'payday2', 'pillarsofeternity2deadfire', 'portal2', 'prisonarchitect',
-                          'rimworld', ];
+                          'rimworld', 'x4foundations' ];
 
 function main(context: types.IExtensionContext) {
   // Abort for non-windows installs. 
