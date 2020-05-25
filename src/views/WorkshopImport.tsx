@@ -138,7 +138,7 @@ class ImportDialog extends ComponentEx<IProps, IComponentState> {
             .then((workshopMods: ISteamWorkshopEntry[]) => this.nextState.modsToImport = convertWorkshopMods(workshopMods, mods))
             .catch(err => {
                 if (err.code === 'ENOTFOUND') return this.nextState.error = (<span><h3>Steam API could not be reached</h3>Please ensure you have an internet connection to use the feature.</span>)
-            else this.nextState.error = <p>Error with the Steam API {err.code} {err.message}</p>
+                else this.nextState.error = <p>Error getting workshop mod data: {err.code} {err.message}</p>
             });
     }
 
