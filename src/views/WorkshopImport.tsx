@@ -572,8 +572,8 @@ function mapStateToProps(state: types.IState): IConnectedProps {
     return {
       steamAppId,
       gameId,
-      discovered: state.settings.gameMode.discovered,
-      mods: state.persistent.mods[gameId],
+      discovered: util.getSafe(state, ['settings', 'gameMode', 'discovered'], {}),
+      mods: util.getSafe(state, ['persistent', 'mods', gameId], {})
     };
   }
   

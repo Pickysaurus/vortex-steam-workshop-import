@@ -1,6 +1,6 @@
 {
   "name": "steam-workshop-extension",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Import mods managed by Steam Workshop into Vortex",
   "main": "./out/index.js",
   "repository": "",
