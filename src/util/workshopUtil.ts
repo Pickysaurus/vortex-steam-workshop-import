@@ -1,4 +1,4 @@
-import { fs, types } from 'vortex-api';
+import { fs, types, log } from 'vortex-api';
 import * as path from 'path';
 import * as https from 'https';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
@@ -34,6 +34,13 @@ export function getWorkshopModData(workshopPath: string): Promise<ISteamWorkshop
     
                     res.on('end', () => {
                         const reply = JSON.parse(rawData);
+                        if (!reply.response?.publishedfiledetails) {
+                            // Handle the Steam API not sending us back usable data. 
+                            const err: any = new Error('The Steam API returned an invalid response, please report this error including your Vortex.log file.');
+                            err.code = 'STEAMAPIERROR';
+                            log('error', 'Steam API response did not contain publishedfiledetails', (reply.response || reply));
+                            return reject(err);
+                        }
                         const mappedData = workshopIds.map(id => reply.response.publishedfiledetails.find(file => file.publishedfileid === id));
                         return resolve(mappedData);
                     });
