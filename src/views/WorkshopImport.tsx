@@ -568,7 +568,8 @@ function convertWorkshopMods(mods: ISteamWorkshopEntry[], vortexMods: {[id: stri
 
 function mapStateToProps(state: types.IState): IConnectedProps {
     const gameId = selectors.activeGameId(state);
-    const steamAppId = selectors.gameById(state, gameId).details.steamAppId;
+    const game = selectors.gameById(state, gameId);
+    const steamAppId = util.getSafe(game, [ 'details', 'steamAppId' ], undefined);
     return {
       steamAppId,
       gameId,
