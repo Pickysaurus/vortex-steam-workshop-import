@@ -1,11 +1,11 @@
 {
   "name": "steam-workshop-extension",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Import mods managed by Steam Workshop into Vortex",
   "main": "./out/index.js",
   "repository": "",
   "scripts": {
-    "webpack": "node ./node_modules/webpack/bin/webpack --config webpack.config.js --display-error-details --progress --profile --color",
+    "webpack": "node ./node_modules/webpack/bin/webpack --config webpack.config.js --stats-error-details --progress --profile --color",
     "bundle7z": "7z a -t7z sample-extension.7z .\\dist\\index.js .\\dist\\info.json",
     "build": "npm run webpack && copyfiles -f src/stylesheets/workshop-import.scss dist && copyfiles -f src/images/* dist && extractInfo"
   },
@@ -13,7 +13,7 @@
   "license": "GPL-3.0",
   "babel": {
     "presets": [
-      "es2015"
+      "es2016"
     ]
   },
   "devDependencies": {
@@ -24,17 +24,25 @@
     "@types/redux": "^3.6.0",
     "@types/redux-thunk": "^2.1.0",
     "bluebird": "^3.5.5",
+    "cache-loader": "^4.1.0",
+    "clean-webpack-plugin": "^4.0.0",
     "copyfiles": "^2.1.1",
+    "fork-ts-checker-webpack-plugin": "^7.2.13",
     "i18next": "^17.0.4",
+    "pnp-webpack-plugin": "^1.7.0",
     "react": "^16.8.6",
     "react-bootstrap": "^0.32.4",
-    "ts-loader": "^6.0.4",
-    "typescript": "^3.5.2",
+    "source-map-loader": "^4.0.1",
+    "thread-loader": "^3.0.4",
+    "ts-loader": "^9.4.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.4",
     "vortex-api": "Nexus-Mods/vortex-api",
-    "webpack": "^4.35.0",
-    "webpack-cli": "^3.3.4"
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
   },
   "dependencies": {
+    "axios": "^1.2.1",
     "react-i18next": "^11.3.5",
     "react-redux": "^7.2.0"
   }
