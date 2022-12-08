@@ -1726,6 +1726,39 @@ __metadata:
   languageName: node
   linkType: hard
 
+"import-from-steam-workshop@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "import-from-steam-workshop@workspace:."
+  dependencies:
+    7z-bin: Nexus-Mods/7z-bin
+    "@types/i18next": ^12.1.0
+    "@types/node": ^12.0.10
+    "@types/react": ^16.8.22
+    "@types/redux": ^3.6.0
+    "@types/redux-thunk": ^2.1.0
+    axios: ^1.2.1
+    bluebird: ^3.5.5
+    cache-loader: ^4.1.0
+    clean-webpack-plugin: ^4.0.0
+    copyfiles: ^2.1.1
+    fork-ts-checker-webpack-plugin: ^7.2.13
+    i18next: ^17.0.4
+    pnp-webpack-plugin: ^1.7.0
+    react: ^16.8.6
+    react-bootstrap: ^0.32.4
+    react-i18next: ^11.3.5
+    react-redux: ^7.2.0
+    source-map-loader: ^4.0.1
+    thread-loader: ^3.0.4
+    ts-loader: ^9.4.2
+    ts-node: ^10.9.1
+    typescript: ^4.9.4
+    vortex-api: Nexus-Mods/vortex-api
+    webpack: ^5.75.0
+    webpack-cli: ^5.0.1
+  languageName: unknown
+  linkType: soft
+
 "import-local@npm:^3.0.2":
   version: 3.1.0
   resolution: "import-local@npm:3.1.0"
@@ -3170,39 +3203,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"steam-workshop-extension@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "steam-workshop-extension@workspace:."
-  dependencies:
-    7z-bin: Nexus-Mods/7z-bin
-    "@types/i18next": ^12.1.0
-    "@types/node": ^12.0.10
-    "@types/react": ^16.8.22
-    "@types/redux": ^3.6.0
-    "@types/redux-thunk": ^2.1.0
-    axios: ^1.2.1
-    bluebird: ^3.5.5
-    cache-loader: ^4.1.0
-    clean-webpack-plugin: ^4.0.0
-    copyfiles: ^2.1.1
-    fork-ts-checker-webpack-plugin: ^7.2.13
-    i18next: ^17.0.4
-    pnp-webpack-plugin: ^1.7.0
-    react: ^16.8.6
-    react-bootstrap: ^0.32.4
-    react-i18next: ^11.3.5
-    react-redux: ^7.2.0
-    source-map-loader: ^4.0.1
-    thread-loader: ^3.0.4
-    ts-loader: ^9.4.2
-    ts-node: ^10.9.1
-    typescript: ^4.9.4
-    vortex-api: Nexus-Mods/vortex-api
-    webpack: ^5.75.0
-    webpack-cli: ^5.0.1
-  languageName: unknown
-  linkType: soft
-
 "string-width@npm:^1.0.2 || 2 || 3 || 4, string-width@npm:^4.2.3":
   version: 4.2.3
   resolution: "string-width@npm:4.2.3"
@@ -3571,11 +3571,11 @@ __metadata:
   linkType: hard
 
 vortex-api@Nexus-Mods/vortex-api:
-  version: 1.1.13
-  resolution: "vortex-api@https://github.com/Nexus-Mods/vortex-api.git#commit=93e3d74da068baf71135b43e5e3d16a509195311"
+  version: 1.7.0
+  resolution: "vortex-api@https://github.com/Nexus-Mods/vortex-api.git#commit=f910eaf14c2e55c705bdf4d87ec36ea71ec3c0b1"
   bin:
     extractInfo: ./bin/extractInfo.js
-  checksum: d340a5e1526556158b320d6a1c674c386f4af2e7fe2d189ab7646a799b9d9800790be9ca3ebecdd3e6d59f5518a8558989801be44395cc9efd1551b7c9b80b39
+  checksum: 53908c80e8104fd39314a0fadef610527f97e53cf934d705e45df32b6be74aaa93dc7f1c47567ba11af5c7757983e19cae0177d1ae7b3e44494862c05928a14a
   languageName: node
   linkType: hard
 

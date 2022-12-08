@@ -1,32 +1,17 @@
 import { fs, types, log } from 'vortex-api';
 import * as path from 'path';
-import * as https from 'https';
 import { Axios, AxiosError, AxiosResponse, AxiosRequestConfig } from 'axios';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
-import { IncomingMessage } from 'http';
-import * as querystring from 'querystring';
 
-const steamRequestOptions = {
-    hostname: 'api.steampowered.com',
-    port: 443,
-    path: '/ISteamRemoteStorage/GetPublishedFileDetails/v1/',
-    method: 'POST',
+const axiosConfig: AxiosRequestConfig = {
+    baseURL: 'https://api.steampowered.com',
     headers: {
         'Content-Type' : 'application/x-www-form-urlencoded',
     },
+    method: 'POST',
+    timeout: 30000,
+    transformResponse: (res) => JSON.parse(res)
 };
-
-const axiosConfig = (params: string): AxiosRequestConfig => ({
-    url: '/ISteamRemoteStorage/GetPublishedFileDetails/v1/',
-    baseURL: 'api.steampowered.com',
-    params,
-    headers: {
-        'Content-Type' : 'application/x-www-form-urlencoded',
-        'Content-Size' : params.length
-    },
-    method: 'POST',
-    timeout: 30000
-});
 
 export async function getWorkshopModData(workshopPath: string): Promise<ISteamWorkshopEntry[]> {
     try {
@@ -34,20 +19,20 @@ export async function getWorkshopModData(workshopPath: string): Promise<ISteamWo
         // Filter anything that isn't a numerical folder - this won't be a Workshop mod.
         const workshopIds = directory.filter(d => !path.extname(d) && d.match(/[0-9]+/));
         if (!workshopIds || !workshopIds.length) return [];
-        const postData = { itemcount: workshopIds.length.toString() };
+        const formData = new FormData()
+        formData.append('itemcount', workshopIds.length.toString());
         // Add the IDs we want to the post data
-        workshopIds.map((id: string, idx: number) => postData[`publishedfileids[${idx}]`] = id.toString());
-        const postString: string = new URLSearchParams(Object.entries(postData)).toString();
+        workshopIds.map((id: string, idx: number) => formData.append(`publishedfileids[${idx}]`, id.toString()));
         try {
-            const ax = new Axios(axiosConfig(postString));
-            const query: AxiosResponse = await ax.post('/ISteamRemoteStorage/GetPublishedFileDetails/v1/');
-            if (!query.data?.publishedfiledetails) {
-                const err: any = new Error('The Steam API returned an invalid response.');
+            const ax = new Axios(axiosConfig);
+            const query: AxiosResponse = await ax.post(`/ISteamRemoteStorage/GetPublishedFileDetails/v1/`, formData);
+            if (!query.data?.response?.publishedfiledetails) {
+                const err: any = new Error('The Steam API returned an invalid response. Check your vortex.log file for more details.');
                 err.code = 'STEAMAPIERROR';
-                log('error', 'Steam API response did not contain publishedfiledetails', { status: query.status, response: query.data });
+                log('error', 'Steam API response did not contain publishedfiledetails', { status: query.status, response: query.data?.response });
                 throw err;
             }
-            const mappedData = workshopIds.map(id => query.data?.publishedfiledetails.find((file: ISteamWorkshopEntry) => file.publishedfileid === id));
+            const mappedData = workshopIds.map(id => query.data?.response?.publishedfiledetails.find((file: ISteamWorkshopEntry) => file.publishedfileid === id));
             return mappedData;
             
         }
@@ -63,50 +48,6 @@ export async function getWorkshopModData(workshopPath: string): Promise<ISteamWo
     catch(err) {
         throw err;
     }
-}
-
-export function getWorkshopModDataold(workshopPath: string): Promise<ISteamWorkshopEntry[]> {
-    // Get a list of workshop IDs from the folder names.
-    return fs.readdirAsync(workshopPath)
-    .then(
-        (workshopIds: Array<string>) => {
-            if (!workshopIds || !workshopIds.length) return Promise.resolve([]);
-            const dataObject = {'itemcount': workshopIds.length};
-            workshopIds.map((id, idx) => dataObject[`publishedfileids[${idx}]`]=id);
-            const data = querystring.stringify(dataObject);
-            steamRequestOptions.headers['Content-size'] = data.length;
-
-            return new Promise((resolve, reject) => {
-                const req = https.request(steamRequestOptions, (res: IncomingMessage) => {
-                    // console.log(`statuscode: ${res.statusCode}`);
-                    let rawData = '';
-                    res.on('data', d => rawData += d);
-    
-                    res.on('end', () => {
-                        const reply = JSON.parse(rawData);
-                        if (!reply.response?.publishedfiledetails) {
-                            // Handle the Steam API not sending us back usable data. 
-                            const err: any = new Error('The Steam API returned an invalid response, please report this error including your Vortex.log file.');
-                            err.code = 'STEAMAPIERROR';
-                            log('error', 'Steam API response did not contain publishedfiledetails', (reply.response || reply));
-                            return reject(err);
-                        }
-                        const mappedData = workshopIds.map(id => reply.response.publishedfiledetails.find(file => file.publishedfileid === id));
-                        return resolve(mappedData);
-                    });
-    
-                });
-    
-                req.on('error', (error: Error) => reject(error));
-    
-                req.write(data);
-                req.end();
-            }).catch(err => Promise.reject(err));
-        }
-    )
-    .catch(err => {
-        Promise.reject(err);
-    });
 }
 
 function findWorkshopPath(games: {[gameId: string]: types.IDiscoveryResult}, gameId: string, steamAppId: string) : Promise<string> {
