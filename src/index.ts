@@ -2,9 +2,13 @@ import { actions, log, selectors, types } from 'vortex-api';
 import * as path from 'path';
 import WorkshopImport from './views/WorkshopImport';
 
-const supportedGameIds = ['skyrim', 'ahatintime', 'enderal', 'darkestdungeon', 'dawnofman', 'divinityoriginalsin2', 'divinityoriginalsin2definitiveedition', 'faleanniversary', 'galacticcivilisations3', 'kenshi',
-                          'kerbalspaceprogram', 'legendofgrimrock', 'mbwarband', 'neverwinternightsenhancededition', 'oxygennotincluded', 'payday2', 'pillarsofeternity2deadfire', 'portal2', 'prisonarchitect',
-                          'rimworld', 'x4foundations', 'xcom2' ];
+const supportedGameIds = [
+  'skyrim', 'ahatintime', 'enderal', 'darkestdungeon', 'dawnofman', 'divinityoriginalsin2', 
+  'divinityoriginalsin2definitiveedition', 'faleanniversary', 'galacticcivilisations3', 'kenshi',
+  'kerbalspaceprogram', 'legendofgrimrock', 'mbwarband', 'neverwinternightsenhancededition', 
+  'oxygennotincluded', 'payday2', 'pillarsofeternity2deadfire', 'portal2', 'prisonarchitect',
+  'rimworld', 'xcom2' 
+];
 
 function main(context: types.IExtensionContext) {
   // Abort for non-windows installs. 
