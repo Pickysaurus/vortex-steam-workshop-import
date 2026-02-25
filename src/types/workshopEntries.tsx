@@ -12,8 +12,8 @@ export interface ISteamWorkshopEntry {
   hcontent_preview?: string;
   title: string;
   description: string;
-  time_created: Date;
-  time_updated: Date;
+  time_created: Date | string;
+  time_updated: Date | string;
   visibility?: number;
   banned?: number;
   ban_reason?: string;
@@ -24,6 +24,8 @@ export interface ISteamWorkshopEntry {
   views?: number;
   tags?: Array<ISteamTag>;
   isAlreadyManaged: boolean;
+  // new props
+  files?: string[];
 }
 
 interface ISteamTag {
