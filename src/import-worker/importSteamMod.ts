@@ -1,8 +1,24 @@
-import { types } from "vortex-api";
 import { ISteamWorkshopEntry } from "../types/workshopEntries";
 
-export function toVortexMod(mod: ISteamWorkshopEntry, vortexId: string) : types.IMod {
-    const vortexMod: types.IMod = {
+export type IMockedMod = {
+    id: string;
+    state: 'installed'
+    type: '',
+    installationPath: string;
+    attributes: {
+        name: string;
+        author: string;
+        description: string;
+        pictureUrl: string | undefined;
+        installTime: string;
+        version: string;
+        notes: string;
+        steamWorkshopId: string;
+    }
+}
+
+export function toVortexMod(mod: ISteamWorkshopEntry, vortexId: string) : IMockedMod {
+    const vortexMod: IMockedMod = {
         id: vortexId,
         state: 'installed',
         type: '',

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from "path";
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
 import { ImportEvent } from '../types/importEvents';
-import { toVortexMod } from './importSteamMod';
+import { IMockedMod, toVortexMod } from './importSteamMod';
 
 type WorkshopModsResult =
     | { path: string, mods: { [id: string]: ISteamWorkshopEntry }, error: null }
@@ -16,7 +16,20 @@ interface ISteamWorkshopAPIResponse {
     }
 }
 
-const STEAM_API = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
+const STEAM_API = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/';
+
+type ImportStage = 'import-files' | 'create-archive' | 'remove-files';
+
+export class ImportSteamWorkshopModError extends Error {
+    public stage: ImportStage;
+    public fileErrors?:  { [id: string]: string }
+
+    constructor(stage: ImportStage, mainError: string, creationName: string, fileErrors?: { [id: string]: string }) {
+        super(`Error importing ${creationName || 'Creation'}: ${mainError ?? 'Unknown'}`);
+        this.stage = stage;
+        this.fileErrors = fileErrors;
+    }
+}
 
 export async function findWorkshopMods(gamePath: string, steamAppId: number): Promise<WorkshopModsResult> {
     if (!steamAppId) return { path: null, error: 'NON_STEAM', detail: 'No Steam App ID in game extension' };
@@ -87,14 +100,12 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number): Pr
 }
 
 export async function importModToStagingFolder(
-    vortexId: string, mod: ISteamWorkshopEntry, gameId: string,
-    stagingFolderPath: string, workshopPath: string,
+    vortexId: string, mod: ISteamWorkshopEntry, stagingFolderPath: string, workshopPath: string,
     progress: ImportEvent<ReturnType<typeof toVortexMod>>, send: (ev: ImportEvent<ReturnType<typeof toVortexMod>>) => void
-): Promise<{ success: boolean, errors: string[] }> {
+): Promise<IMockedMod> {
     const modPath = path.join(workshopPath, mod.publishedfileid);
     const stagingPath = path.join(stagingFolderPath, vortexId);
-    const errors: string[] = [];
-    let successfulCopies = 0;
+    const failedImports: { [id: string]: string } = {};
     try {
         // Create a staging folder
         const stat = await fs.promises.stat(stagingPath);
@@ -110,6 +121,7 @@ export async function importModToStagingFolder(
             // Report progress
             const newProgress = {
                 ...progress,
+                message: `Importing "${mod.title}"...`, 
                 detail: `Coping file "${file}"...`
             }
             send?.(newProgress);
@@ -117,18 +129,46 @@ export async function importModToStagingFolder(
             // Copy the file
             try {
                 await fs.promises.copyFile(src, dest);
-                successfulCopies += 1;
             }
             catch(e: unknown) {
-                errors.push(`Failed to import ${src} - ${(e as Error).message}`);
+                failedImports[file] = (e as Error).message;
             }
         }
 
-        if (successfulCopies < files.length) return { success: false, errors };
-        else return { success: true, errors };
+        if (Object.keys(failedImports)) {
+            // Delete the staging folder and report the error
+            await fs.promises.rm(stagingFolderPath, { recursive: true }).catch(() => undefined);
+            throw new ImportSteamWorkshopModError(
+                'import-files',
+                'Error copying files to staging folder',
+                mod.title,
+                failedImports
+            );
+        }
+
+        const vortexMod = toVortexMod(mod, vortexId);
+        return vortexMod;
 
     } 
-    catch(err: unknown) {
-        return { success: false, errors: [(err as Error)?.message, ...errors] };
+    catch(e: unknown) {
+        // Remove the staging folder if we managed to create it
+        await fs.promises.rm(stagingFolderPath, { recursive: true }).catch(() => undefined);
+        // If it's an error we throw, just pass it on, otherwise reformat it.
+        if (e instanceof ImportSteamWorkshopModError) throw e;
+        throw new ImportSteamWorkshopModError('import-files', (e as Error).message, mod.title);
     }
+}
+
+export async function createArchiveForMod(
+    vortexId: string, stagingFolder: string, downloadFolder: string, 
+    mod: IMockedMod, workshopMod: ISteamWorkshopEntry,
+    send: (ev: ImportEvent<ReturnType<typeof toVortexMod>>) => void, progress: ImportEvent<ReturnType<typeof toVortexMod>>
+): Promise<IMockedMod> {
+
+
+    return mod;
+}
+
+export async function removeWorkshopInstanceOfMod() {
+
 }

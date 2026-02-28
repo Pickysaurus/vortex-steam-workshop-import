@@ -7,7 +7,7 @@ import {
     toVortexMod,
     // ImportCreationError
 } from './importSteamMod';
-import { findWorkshopMods, importModToStagingFolder } from './SteamWorkshopUtil';
+import { createArchiveForMod, findWorkshopMods, importModToStagingFolder, ImportSteamWorkshopModError } from './SteamWorkshopUtil';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
 
 let cancelled = false;
@@ -75,19 +75,19 @@ async function importMods(
 
             try {
                 let vortexMod = await importModToStagingFolder(
-                    vortexId, mod, gameId, 
-                    stagingFolderPath, gamePath, 
+                    vortexId, mod,
+                    stagingFolderPath, workshopPath, 
                     progress, send
                 );
                 // Create a backup archive
-                // if (createArchives === true) {
-                //     vortexMod = await createArchiveForCreation(
-                //         vortexId, stagingFolderPath, downloadFolder,
-                //         vortexMod, mod, send, progress
-                //     );
-                // }
+                if (createArchives === true) {
+                    vortexMod = await createArchiveForMod(
+                        vortexId, stagingFolderPath, downloadFolder,
+                        vortexMod, mod, send, progress
+                    );
+                }
                 // Send the mod info we have back to the UI.
-                // send({ type: 'importedmod', mod: vortexMod });
+                send({ type: 'importedmod', mod: vortexMod });
                 // Clean up the files that we've copied
                 // await removeCreationFilesFromData(
                 //     mod, gamePath, stagingFolderPath, 
@@ -96,27 +96,27 @@ async function importMods(
                 successful.push(mod.publishedfileid);
             }
             catch(err: unknown) {
-                // if (err instanceof ImportCreationError) {
-                //     if (err.stage === 'import-files' || err.stage === 'remove-files') {
-                //         let error = err.message;
-                //         if (err.fileErrors) {
-                //             const fileErrors = Object.entries(err.fileErrors).reduce((prev, cur) => {
-                //                 const [key, error] = cur;
-                //                 prev += `\n- ${key}: ${error}`;
-                //                 return prev;
-                //             }, '');
-                //             error += fileErrors;
-                //         }
-                //         // Completely abort the process if this stage fails.
-                //         errors.push(error);
-                //         // if (err.stage === 'import-files') break;
-                //     }
-                //     else {
-                //         // Failed at archive step.
-                //         errors.push(err.message);
-                //     }
-                // }
-                // else send({ type: 'fatal', error: `Unknown error: ${(err as Error).message}` });
+                if (err instanceof ImportSteamWorkshopModError) {
+                    if (err.stage === 'import-files' || err.stage === 'remove-files') {
+                        let error = err.message;
+                        if (err.fileErrors) {
+                            const fileErrors = Object.entries(err.fileErrors).reduce((prev, cur) => {
+                                const [key, error] = cur;
+                                prev += `\n- ${key}: ${error}`;
+                                return prev;
+                            }, '');
+                            error += fileErrors;
+                        }
+                        // Completely abort the process if this stage fails.
+                        errors.push(error);
+                        // if (err.stage === 'import-files') break;
+                    }
+                    else {
+                        // Failed at archive step.
+                        errors.push(err.message);
+                    }
+                }
+                else send({ type: 'fatal', error: `Unknown error: ${(err as Error).message}` });
             }
         }
 
@@ -132,12 +132,12 @@ async function importMods(
     }
 
 
-    try {
-        // await updateContentCatalogue(gameId, localAppData, successful, send);
-    }
-    catch(err) {
-        errors.push(`Error removing imported mods from ContentCatalog.txt: ${(err as Error).message}`);
-    }
+    // try {
+    //     await updateContentCatalogue(gameId, localAppData, successful, send);
+    // }
+    // catch(err) {
+    //     errors.push(`Error removing imported mods from ContentCatalog.txt: ${(err as Error).message}`);
+    // }
 
     send({ type: 'importcomplete', errors, total: modsToImport.length, successful: successful.length });
 }
