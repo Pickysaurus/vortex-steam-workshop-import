@@ -1,8 +1,10 @@
 import fs from 'fs';
 import path from "path";
+import yazl from 'yazl';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
 import { ImportEvent } from '../types/importEvents';
 import { IMockedMod, toVortexMod } from './importSteamMod';
+import { createHash, randomBytes } from 'crypto';
 
 type WorkshopModsResult =
     | { path: string, mods: { [id: string]: ISteamWorkshopEntry }, error: null }
@@ -55,16 +57,19 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number): Pr
         if (!ids.length) return { path: workshopFolder, mods: {}, error: null };
 
         // Get details from the Steam API
-        const form = new FormData();
-        form.append('itemcount', String(ids.length));
-        for (const id in ids) form.append(`publishedfileids[${ids.indexOf(id)}]`, String(id));
+        const body = new URLSearchParams();
+        body.append('itemcount', String(ids.length));
+        ids.forEach((id, i) => {
+            body.append(`publishedfileids[${i}]`, String(id));
+        });
 
+        
         const postRes = await fetch(STEAM_API, {
             method: 'POST',
             headers: {
                 'Content-Type' : 'application/x-www-form-urlencoded',
             }, 
-            body: form,
+            body,
         });
 
         if (!postRes.ok) return { path: null, error: 'STEAM_API_ERROR', detail: `HTTP ${postRes.status} - ${postRes.statusText ?? 'No status message'}` };
@@ -160,13 +165,62 @@ export async function importModToStagingFolder(
 }
 
 export async function createArchiveForMod(
-    vortexId: string, stagingFolder: string, downloadFolder: string, 
-    mod: IMockedMod, workshopMod: ISteamWorkshopEntry,
-    send: (ev: ImportEvent<ReturnType<typeof toVortexMod>>) => void, progress: ImportEvent<ReturnType<typeof toVortexMod>>
+    id: string, stagingFolderPath: string, downloadFolder: string, 
+    vortexMod: IMockedMod, workshopMod: ISteamWorkshopEntry,
+    send: (ev: ImportEvent<IMockedMod>) => void, importProgress: ImportEvent<IMockedMod>
 ): Promise<IMockedMod> {
+    const dest = path.join(downloadFolder, `${id}.zip`);
+    let newProgress = {
+        ...importProgress,
+        detail: 'Creating archive'
+    }
+    send(newProgress);
+    try {
+        const files = await fs.promises.readdir(stagingFolderPath);
+        const zipList = files.map(f => ({ abs: path.join(stagingFolderPath, f), zip: f }));
+        const zip = new yazl.ZipFile();
+        for (const zipFile of zipList) {
+            zip.addFile(zipFile.abs, zipFile.zip);
+        }
+        // Write out the zip file
+        await new Promise<void>((resolve, reject) => {
+            const out = fs.createWriteStream(dest);
 
+            out.on('error', reject);
+            out.on('close', resolve);
 
-    return mod;
+            zip.outputStream.on('error', reject);
+            zip.outputStream.pipe(out);
+
+            zip.end();
+        });
+
+        // Generate a UID and hash the archive
+        const archiveId = randomBytes(8).toString('hex');
+        vortexMod.archiveId = archiveId;
+        newProgress.detail = 'Creating archive MD5 hash'
+        send(newProgress);
+        const hash = await new Promise<string>((resolve, reject) => {
+            const hash = createHash('md5');
+            const stream = fs.createReadStream(dest);
+            stream.on('error', reject);
+            stream.on('data', chunk => hash.update(chunk));
+            stream.on('end', () => resolve(hash.digest('hex')));
+        });
+        vortexMod.attributes.fileMD5 = hash;
+        const stat = await fs.promises.stat(dest);
+        vortexMod.attributes.fileSize = stat.size;
+        vortexMod.attributes.fileName = path.basename(dest);
+
+        newProgress.detail = 'Moving archive to downloads';
+        send(newProgress);
+
+        return vortexMod;
+    }
+    catch(e: unknown) {
+        await fs.promises.unlink(dest).catch(() => undefined);
+        throw new ImportSteamWorkshopModError('create-archive', 'Failed to pack archive: '+(e as Error).message, workshopMod.title);
+    }
 }
 
 export async function removeWorkshopInstanceOfMod() {

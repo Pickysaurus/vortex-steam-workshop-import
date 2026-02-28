@@ -14,7 +14,11 @@ export type IMockedMod = {
         version: string;
         notes: string;
         steamWorkshopId: string;
+        fileMD5?: string;
+        fileName?: string;
+        fileSize?: number;
     }
+    archiveId?: string;
 }
 
 export function toVortexMod(mod: ISteamWorkshopEntry, vortexId: string) : IMockedMod {

@@ -109,7 +109,6 @@ async function importMods(
                         }
                         // Completely abort the process if this stage fails.
                         errors.push(error);
-                        // if (err.stage === 'import-files') break;
                     }
                     else {
                         // Failed at archive step.

@@ -7,11 +7,11 @@ function main(context: types.IExtensionContext) {
   if (process.platform !== "win32") return false;
 
   // Register our import dialog
-  context.registerDialog('workshop-import', WorkshopImport);
+  context.registerDialog('workshop-import-2', WorkshopImport);
 
   // Add an import button to the mods tab.
   context.registerAction('mod-icons', 120, 'import', {}, 'Import From Steam Workshop (NEW)', () => {
-    context.api.store.dispatch(actions.setDialogVisible('workshop-import'));
+    context.api.store.dispatch(actions.setDialogVisible('workshop-import-2'));
   }, () => {
     // Make sure this is a game we know can have Steam Workshop
     // If the game extension doesn't include the Steam App ID, we won't show it.

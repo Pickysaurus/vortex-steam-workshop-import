@@ -54,13 +54,7 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                 {error && (
                     <ErrorAlert title={error.title} detail={error.detail} />
                 )}
-                <ImportProgressBar 
-                    state={progress?.state}
-                    message={progress?.message}
-                    done={progress?.done}
-                    total={progress?.total}
-                    detail={progress?.detail}
-                />
+                <ImportProgressBar {...progress} />
                 <div style={{display: 'flex', gap: 4, justifyContent: 'start', justifyItems: 'start', marginTop: '4px' }}>
                     <Button 
                         onClick={startImport} 
