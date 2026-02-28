@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from "path";
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
+import { ImportEvent } from '../types/importEvents';
+import { toVortexMod } from './importSteamMod';
 
 type WorkshopModsResult =
     | { path: string, mods: { [id: string]: ISteamWorkshopEntry }, error: null }
@@ -81,5 +83,52 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number): Pr
     }
     catch(err) {
         return { path: null, error: 'UNKNOWN', detail: `Unknown error: ${(err as Error)?.message}` }
+    }
+}
+
+export async function importModToStagingFolder(
+    vortexId: string, mod: ISteamWorkshopEntry, gameId: string,
+    stagingFolderPath: string, workshopPath: string,
+    progress: ImportEvent<ReturnType<typeof toVortexMod>>, send: (ev: ImportEvent<ReturnType<typeof toVortexMod>>) => void
+): Promise<{ success: boolean, errors: string[] }> {
+    const modPath = path.join(workshopPath, mod.publishedfileid);
+    const stagingPath = path.join(stagingFolderPath, vortexId);
+    const errors: string[] = [];
+    let successfulCopies = 0;
+    try {
+        // Create a staging folder
+        const stat = await fs.promises.stat(stagingPath);
+        if (!stat) await fs.promises.mkdir(stagingPath);
+
+        // Get a list of files to copy
+        const files = await fs.promises.readdir(modPath, { recursive: true });
+
+        // Import the files
+        for (const file of files) {
+            const src = path.join(modPath, file);
+            const dest = path.join(stagingPath, file);
+            // Report progress
+            const newProgress = {
+                ...progress,
+                detail: `Coping file "${file}"...`
+            }
+            send?.(newProgress);
+
+            // Copy the file
+            try {
+                await fs.promises.copyFile(src, dest);
+                successfulCopies += 1;
+            }
+            catch(e: unknown) {
+                errors.push(`Failed to import ${src} - ${(e as Error).message}`);
+            }
+        }
+
+        if (successfulCopies < files.length) return { success: false, errors };
+        else return { success: true, errors };
+
+    } 
+    catch(err: unknown) {
+        return { success: false, errors: [(err as Error)?.message, ...errors] };
     }
 }

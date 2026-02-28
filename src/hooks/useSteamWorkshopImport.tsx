@@ -87,19 +87,16 @@ export default function useSteamWorkshopImport(visible: boolean) {
     }, []);
 
     // Service Handler
-        const handleEvent = useCallback((ev: ImportEvent<types.IMod, LogLevel>) => {
+    const handleEvent = useCallback((ev: ImportEvent<types.IMod, LogLevel>) => {
         const { gameId: currentGameId } = activeStateRef.current; 
         console.log('Steam Workshop Import Event triggered', ev);
         switch(ev.type) {
-            // case 'scanparsed': 
-            //     setScanResults(prev => ({ ...prev, [ev.id]: ev.data }));
-            //     break;
             case 'scancomplete':
                 setTableState('ready');
                 if (ev.total === 0) setScanResults({});
                 else setScanResults(ev.mods);
                 if (ev.errors?.length) setError({
-                    title: 'Full scan encountered errors',
+                    title: 'Scan encountered errors',
                     detail: ev.errors.join('\n')
                 });
                 break;
@@ -153,9 +150,9 @@ export default function useSteamWorkshopImport(visible: boolean) {
                 log(ev.level, ev.message, ev.metadata);
                 break;
             case 'exit':
-                log('debug', 'Bethesda.net import child process exited with code: '+ev.code);
+                log('debug', 'Steam Workshop import child process exited with code: '+ev.code);
                 break;
-            default: log('warn', `Unknown Bethesda.net Import Event: ${JSON.stringify(ev satisfies never)}`);         
+            default: log('warn', `Unknown Steam Workshop Import Event: ${JSON.stringify(ev satisfies never)}`);         
         }
     }, [addMod, addLocalDownload, setDownloadModInfo]);
 

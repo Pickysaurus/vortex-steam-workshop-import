@@ -7,7 +7,8 @@ import {
     toVortexMod,
     // ImportCreationError
 } from './importSteamMod';
-import { findWorkshopMods } from './SteamWorkshopUtil';
+import { findWorkshopMods, importModToStagingFolder } from './SteamWorkshopUtil';
+import { ISteamWorkshopEntry } from '../types/workshopEntries';
 
 let cancelled = false;
 
@@ -39,42 +40,45 @@ async function scan(gamePath: string, steamAppId: number) {
 }
 
 async function importMods(
-    importIds: string[], gamePath: string, gameId: string,
-    localAppData: string, stagingFolder: string, downloadFolder: string, 
+    importIds: string[], gamePath: string, gameId: string, steamAppId: number,
+    stagingFolder: string, downloadFolder: string, 
     createArchives: boolean
 ) {
     cancelled = false;
-    send({ type: 'message', level: 'info', message: `Starting Bethesda.net import for ${gameId} with IDs ${importIds.join(', ')}` });
+    send({ type: 'message', level: 'info', message: `Starting Steam Workshop import for ${gameId} with IDs ${importIds.join(', ')}` });
     send({
         type: 'importprogress',
-        message: `Preparing to import ${importIds.length} creation(s)...`, 
+        message: `Preparing to import ${importIds.length} mods(s)...`, 
         total: importIds.length, done: 0
     })
     let errors: string[] = [];
-    // const manifests = await getBethesdaNetModsFromContentCatalogue(gameId, localAppData, () => {});
-    const modsToImport: any[] = []// manifests.filter(m => importIds.includes(m.id));
+    const workshopMods = await findWorkshopMods(gamePath, steamAppId);
+    if (workshopMods.error) return send({ type: 'fatal', error: `Unexpected error during import: ${workshopMods.error}` });
+
+    const workshopPath: string = workshopMods.path;
+    const modsToImport: ISteamWorkshopEntry[] = Object.values(workshopMods.mods).filter(m => importIds.includes(m.publishedfileid));
     const successful: string[] = [];
     try {
         for (const mod of modsToImport) {
             if (cancelled) throw new Error('User Cancelled');
             const idx = modsToImport.indexOf(mod);
-            const vortexId = `bethesdanet-${mod.id}-${mod.version}`;
+            const vortexId = `steamworkshop-${mod.publishedfileid}`;
             const stagingFolderPath = path.join(stagingFolder, vortexId);
 
             const progress: ImportEvent = {
                 type: 'importprogress',
-                message: `Importing "${mod.name}"...`, 
+                message: `Importing "${mod.title}"...`, 
                 detail: '',
                 done: idx,
                 total: modsToImport.length
             }
 
             try {
-                // let vortexMod = await importCreationToStagingFolder(
-                //     vortexId, mod, gameId, 
-                //     stagingFolderPath, gamePath, 
-                //     send, progress
-                // );
+                let vortexMod = await importModToStagingFolder(
+                    vortexId, mod, gameId, 
+                    stagingFolderPath, gamePath, 
+                    progress, send
+                );
                 // Create a backup archive
                 // if (createArchives === true) {
                 //     vortexMod = await createArchiveForCreation(
@@ -89,7 +93,7 @@ async function importMods(
                 //     mod, gamePath, stagingFolderPath, 
                 //     send, progress
                 // );
-                successful.push(mod.manifest);
+                successful.push(mod.publishedfileid);
             }
             catch(err: unknown) {
                 // if (err instanceof ImportCreationError) {
@@ -158,7 +162,7 @@ process.on('message', async (message) => {
         case 'import': {
             await importMods(
                 msg.importIds, msg.gamePath, msg.gameId, 
-                msg.localAppData, msg.stagingFolder, msg.downloadFolder, 
+                msg.steamAppId, msg.stagingFolder, msg.downloadFolder, 
                 msg.createArchives
             );
             return;

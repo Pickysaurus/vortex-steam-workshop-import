@@ -13,4 +13,4 @@ export type ImportEvent<TMod = unknown, TLog = string> =
 export type ImportMessage =
     | { type: 'cancel' }
     | { type: 'scan', gamePath: string, steamAppId: number }
-    | { type: 'import', importIds: [], gamePath: string, gameId: string, localAppData: string, stagingFolder: string, downloadFolder: string, createArchives: boolean }
+    | { type: 'import', importIds: [], gamePath: string, gameId: string, steamAppId: number, stagingFolder: string, downloadFolder: string, createArchives: boolean }
