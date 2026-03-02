@@ -129,12 +129,11 @@ export async function importModToStagingFolder(
     progress: ImportEvent<ReturnType<typeof toVortexMod>>, send: (ev: ImportEvent<ReturnType<typeof toVortexMod>>) => void
 ): Promise<IMockedMod> {
     const modPath = path.join(workshopPath, mod.publishedfileid);
-    const stagingPath = path.join(stagingFolderPath, vortexId);
     const failedImports: { [id: string]: string } = {};
     try {
         // Create a staging folder
-        const stat = await fs.promises.stat(stagingPath);
-        if (!stat) await fs.promises.mkdir(stagingPath);
+        const stat = await fs.promises.stat(stagingFolderPath).catch(() => undefined);
+        if (!stat) await fs.promises.mkdir(stagingFolderPath);
 
         // Get a list of files to copy
         const files = await fs.promises.readdir(modPath, { recursive: true });
@@ -142,7 +141,7 @@ export async function importModToStagingFolder(
         // Import the files
         for (const file of files) {
             const src = path.join(modPath, file);
-            const dest = path.join(stagingPath, file);
+            const dest = path.join(stagingFolderPath, file);
             // Report progress
             const newProgress = {
                 ...progress,
@@ -153,6 +152,7 @@ export async function importModToStagingFolder(
 
             // Copy the file
             try {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // SLOW DOWN
                 await fs.promises.copyFile(src, dest);
             }
             catch(e: unknown) {

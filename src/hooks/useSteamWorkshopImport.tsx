@@ -196,7 +196,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
             [...selected], 
             discoveryPath, 
             gameId,
-            localAppData,
+            steamAppId,
             stagingFolder,
             downloadFolder,
             createArchives

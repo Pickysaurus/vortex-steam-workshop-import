@@ -62,7 +62,7 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                         style={{color: 'black'}}
                     >
                         {tableState === 'importing' ? <Spinner style={{ marginRight: '4px' }} /> : <Icon name='import' style={{ marginRight: '4px' }} />}
-                        {t('Import {{selected}} Creation(s)', { selected: selected.size })}
+                        {t('Import {{selected}} Mod(s)', { selected: selected.size })}
                     </Button>
                     <Button 
                         onClick={startScan} 

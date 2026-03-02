@@ -47,14 +47,16 @@ export function createImportService() {
             ensureChildProcess().send({ type: 'scan', gamePath, steamAppId });
         },
 
-        import(importIds: string[], gamePath: string, gameId: string,
-        localAppData: string, stagingFolder: string, downloadFolder: string, 
-        createArchives: boolean) {
+        import(
+            importIds: string[], gamePath: string, gameId: string, steamAppId: number,
+            stagingFolder: string, downloadFolder: string, 
+            createArchives: boolean
+        ) {
             ensureChildProcess().send(
                 { 
                     type: 'import', 
                     importIds, gamePath, gameId, 
-                    localAppData, stagingFolder, 
+                    steamAppId, stagingFolder, 
                     downloadFolder, createArchives
                 });
         },
