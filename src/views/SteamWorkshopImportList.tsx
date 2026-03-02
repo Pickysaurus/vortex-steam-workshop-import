@@ -52,8 +52,7 @@ export default function WorkshopModsList({ t, workshopMods, state, selected, set
                 <div className='cover' style={{padding: '8px 16px'}}>
                     <img 
                         src={`file://${__dirname}/steam.png`} 
-                        className='icon-spin' 
-                        style={{ height: '30px', width: '30px', animationDuration: '1.5s' }} 
+                        className='loading-pulse' 
                     />
                     <p>{t('Getting Steam Workshop mod information...')}</p>
                 </div>
@@ -93,14 +92,12 @@ interface IRowProps {
 
 function WorkshopModRow({ t, state, mod, selected, setSelected, exists }: IRowProps) {
     
-    let { 
+    const { 
         title, publishedfileid: version, files, 
-        file_size, time_updated: timeStamp 
+        file_size, time_installed
     } = mod;
 
-    if (!(timeStamp instanceof Date)) timeStamp = new Date(timeStamp);
-
-    const installTime = util.relativeTime(timeStamp, t);
+    const installTime = util.relativeTime(new Date(time_installed * 1000), t);
     const size = util.bytesToString(file_size || 0);
 
     const classNames = ['row', 'body'];
@@ -126,7 +123,7 @@ function WorkshopModRow({ t, state, mod, selected, setSelected, exists }: IRowPr
             </div>
             <div className='modInfo'>
                 <div className='modMeta'>{t('Files: {{total}} | Size: {{fileSize}}', { total: files?.length ?? 0, fileSize: size })}</div>
-                <div className='modMeta'>{t('Installed: {{time}}', { time: installTime })}</div>
+                <div className='modMeta' title={String(time_installed)}>{t('Installed: {{time}}', { time: installTime })}</div>
             </div>
         </div>
     )

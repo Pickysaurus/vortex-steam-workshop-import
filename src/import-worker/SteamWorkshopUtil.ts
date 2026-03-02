@@ -77,8 +77,12 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number): Pr
         const json: ISteamWorkshopAPIResponse = await postRes.json();
         const apiMods = json.response?.publishedfiledetails;
         if (!apiMods) return { path: null, error: 'UNKNOWN', detail: `Unexpected API response, ${JSON.stringify(json)}` };
-        const mods = ids.reduce((prev, cur) => {
+        let mods: { [id: string]: ISteamWorkshopEntry } = {};
+        for (const cur of ids) {
             let mod = apiMods.find(m => m.publishedfileid === cur);
+            const modPath = path.join(workshopFolder, cur);
+            const pathStat = await fs.promises.stat(modPath);
+            const modFiles = await fs.promises.readdir(modPath, { recursive: true });
             if (!mod) {
                 mod = { 
                     publishedfileid: cur, 
@@ -86,21 +90,37 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number): Pr
                     result: 0, 
                     creator_app_id: Number(cur), 
                     consumer_app_id: Number(cur), 
-                    time_created: new Date(), 
-                    time_updated: new Date(), 
+                    time_created: new Date().getTime(), 
+                    time_updated: new Date().getTime(), 
                     title: `Unknown mod ${cur}`, 
                     description: '', 
                     isAlreadyManaged: false 
                 };
             }
-            prev[cur] = mod;
-            return prev;
-        }, {} as { [id: string]: ISteamWorkshopEntry });
+            mod.time_installed = Math.floor(pathStat.ctimeMs / 1000);
+            mod.api_data = !!mod;
+            mod.files = modFiles;
+            mod.file_size = await determineModSize(modPath, modFiles);
+            mods[cur] = mod;
+        }
 
         return { path: workshopFolder, mods, error: null };
     }
     catch(err) {
         return { path: null, error: 'UNKNOWN', detail: `Unknown error: ${(err as Error)?.message}` }
+    }
+}
+
+async function determineModSize(basePath: string, files: string[]): Promise<number | undefined> {
+    try {
+    const stats = await Promise.allSettled((files.map(async (f) => {
+        const stat = await fs.promises.stat(path.join(basePath, f));
+        return stat.size;
+    })));
+    return stats.filter(s => s.status === 'fulfilled').reduce((cur, acc) => acc.value += cur, 0);
+    }
+    catch(e: unknown) {
+        return undefined;
     }
 }
 
