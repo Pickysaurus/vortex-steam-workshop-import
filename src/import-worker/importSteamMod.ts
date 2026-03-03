@@ -7,6 +7,7 @@ export type IMockedMod = {
     installationPath: string;
     attributes: {
         name: string;
+        logicalFileName: string;
         author: string;
         description: string;
         pictureUrl: string | undefined;
@@ -27,16 +28,26 @@ export function toVortexMod(mod: ISteamWorkshopEntry, vortexId: string) : IMocke
         state: 'installed',
         type: '',
         installationPath: vortexId,
+        archiveId: '', //mod.archiveId, // Added if we create an archive
         attributes: {
             name: mod.title,
+            logicalFileName: mod.title,
             author: 'Steam Workshop',
+            installTime: new Date().toString(),
+            version: mod.publishedfileid,
+            shortDescription: 'Imported from Bethesda.net',
             description: mod.description,
             pictureUrl: mod.preview_url,
-            installTime: new Date().toString(),
-            version: '1.0.0',
-            notes: 'Imported from Steam Workshop',
+            notes: `Imported from Steam Workshop ${new Date().toLocaleDateString()}`,
+            modId: mod.publishedfileid,
+            fileMD5: '', // mod.md5hash, // Added if we create an archive
+            fileName: '', // Added if we create an archive!
+            source: 'website',
+            url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.publishedfileid}`,
+            fileSize: 0, // Added if we create an archive
             steamWorkshopId: mod.publishedfileid
-        }
+        },
     };
+
     return vortexMod;
 }

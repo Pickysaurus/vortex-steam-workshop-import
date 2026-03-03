@@ -73,7 +73,7 @@ export default function WorkshopModsList({ t, workshopMods, state, selected, set
                     mod={m} 
                     selected={selected.has(m.publishedfileid)}
                     setSelected={() => toggleSelect(m.publishedfileid)}
-                    exists={exists(m.publishedfileid)}
+                    exists={exists(`steamworkshop-${m.publishedfileid}`)}
                 />
             ))}
         </div>

@@ -26,8 +26,8 @@ export class ImportSteamWorkshopModError extends Error {
     public stage: ImportStage;
     public fileErrors?:  { [id: string]: string }
 
-    constructor(stage: ImportStage, mainError: string, creationName: string, fileErrors?: { [id: string]: string }) {
-        super(`Error importing ${creationName || 'Creation'}: ${mainError ?? 'Unknown'}`);
+    constructor(stage: ImportStage, mainError: string, modName: string, fileErrors?: { [id: string]: string }) {
+        super(`Error importing ${modName || 'Mod'}: ${mainError ?? 'Unknown'}`);
         this.stage = stage;
         this.fileErrors = fileErrors;
     }
@@ -152,7 +152,6 @@ export async function importModToStagingFolder(
 
             // Copy the file
             try {
-                await new Promise(resolve => setTimeout(resolve, 2000)); // SLOW DOWN
                 await fs.promises.copyFile(src, dest);
             }
             catch(e: unknown) {
@@ -160,7 +159,7 @@ export async function importModToStagingFolder(
             }
         }
 
-        if (Object.keys(failedImports)) {
+        if (Object.keys(failedImports).length) {
             // Delete the staging folder and report the error
             await fs.promises.rm(stagingFolderPath, { recursive: true }).catch(() => undefined);
             throw new ImportSteamWorkshopModError(
