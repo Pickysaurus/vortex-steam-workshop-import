@@ -7,7 +7,7 @@ import { createImportService } from '../util/importServiceHandler';
 import { ImportEvent } from "../types/importEvents";
 import { LogLevel } from "vortex-api/lib/util/log";
 
-type TableState = 'loading' | 'importing' | 'ready';
+type TableState = 'loading' | 'importing' | 'ready' | 'review';
 
 interface IImportError {
     title: string;
@@ -27,8 +27,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
 
     const stagingFolder: string = useSelector((state: types.IState) => selectors.installPath(state));
     const downloadFolder: string = useSelector((state: types.IState) => selectors.downloadPath(state));
-
-    const localAppData = util.getVortexPath('localAppData');
+    const networkConnected: boolean = useSelector((state: types.IState) => state.session.base.networkConnected);
 
     const gameId = useSelector((state: types.IState) => selectors.activeGameId(state));
     const discoveryPath = useSelector((state: types.IState) => {
@@ -152,6 +151,10 @@ export default function useSteamWorkshopImport(visible: boolean) {
             case 'exit':
                 log('debug', 'Steam Workshop import child process exited with code: '+ev.code);
                 break;
+            case 'modremoved':
+                const { id } = ev;
+                if (id) selected.delete(String(id));
+                break;
             default: log('warn', `Unknown Steam Workshop Import Event: ${JSON.stringify(ev satisfies never)}`);         
         }
     }, [addMod, addLocalDownload, setDownloadModInfo]);
@@ -178,6 +181,12 @@ export default function useSteamWorkshopImport(visible: boolean) {
     
     // Event callbacks
     const startScan = () => {
+        if (!networkConnected) {
+            setTableState('ready');
+            setScanResults({});
+            setError({ title: 'Offline', detail: 'You must be connected to the internet to use this feature.' });
+            return;
+        }
         setScanResults(undefined);
         setProgress((p) => ({...p, state: 'running'}));
         setError(undefined);
@@ -208,6 +217,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
     };
 
     return {
+        networkConnected,
         mods,
         scanResults,
         selected,

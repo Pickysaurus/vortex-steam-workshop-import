@@ -60,6 +60,15 @@ export function createImportService() {
                     downloadFolder, createArchives
                 });
         },
+
+        
+        toggleReviewWatcher(enabled: boolean) {
+            ensureChildProcess().send({ type: 'review', enabled })
+        },
+
+        deleteMod(gamePath: string, steamAppId: number) {
+            ensureChildProcess().send({ type: 'delete', gamePath, steamAppId });
+        },
         
         cancel() {
             child?.send({ type: 'cancel' });

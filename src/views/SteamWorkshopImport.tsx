@@ -21,6 +21,7 @@ const secondaryButtonStyle: React.CSSProperties = {
 export default function SteamWorkshopImport({ visible, onHide }: IProps) {
     const { t } = useTranslation([ 'common' ]);
     const {
+        networkConnected,
         mods, error, selected, tableState,
         scanResults, setSelected,
         progress, createArchives, setCreateArchives,
@@ -35,12 +36,14 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                 <h2>{t('Import Steam Workshop Mods to Vortex')}</h2>
             </Modal.Header>
             <Modal.Body>
-                <div>
-                    <div>
+                <div style={{marginBottom: '8px'}}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <img src={`file://${__dirname}/steam-to-vortex.png`} style={{ maxHeight: '75px' }} />
                     </div>
                     <p>{t('This tool will allow you to import mods installed through Steam Workshop into Vortex.')}</p>
                 </div>
+                { tableState !== 'review' && (
+                <div>
                 <WorkshopModsList 
                     t={t}
                     state={tableState}
@@ -50,6 +53,7 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                     disabled={false}
                     rescan={startScan}
                     exists={(id) => !!mods?.[id]}
+                    networkConnected={networkConnected}
                 />
                 {error && (
                     <ErrorAlert title={error.title} detail={error.detail} />
@@ -93,6 +97,7 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                     {t('Create ZIP archives for imported mods in the downloads folder')}
                     </label>
                 </div>
+                </div>)}
             </Modal.Body>
             <Modal.Footer>
                 <Button disabled={!canCancel} onClick={() => onHide()}>{t('Close')}</Button>

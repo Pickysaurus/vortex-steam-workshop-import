@@ -1,14 +1,12 @@
 import path from 'path';
 import { ImportEvent, ImportMessage } from '../types/importEvents';
+import { toVortexMod } from './importSteamMod';
 import { 
-    // createArchiveForCreation, 
-    // importCreationToStagingFolder, 
-    // removeCreationFilesFromData, 
-    toVortexMod,
-    // ImportCreationError
-} from './importSteamMod';
-import { createArchiveForMod, findWorkshopMods, importModToStagingFolder, ImportSteamWorkshopModError } from './SteamWorkshopUtil';
+    createArchiveForMod, findWorkshopMods, 
+    importModToStagingFolder, ImportSteamWorkshopModError 
+} from './SteamWorkshopUtil';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
+import ReviewWatcher from './reviewWatcher';
 
 let cancelled = false;
 
@@ -17,16 +15,16 @@ function send(ev: ImportEvent<ReturnType<typeof toVortexMod>>) {
 }
 
 async function scan(gamePath: string, steamAppId: number) {
-    send({ type: 'message', level: 'info', message: `Scan props ${gamePath} ${steamAppId}` })
     cancelled = false;
     const errors: string[] = [];
     // Mod import
     try {
-        const workshopMods = await findWorkshopMods(gamePath, steamAppId);
+        const workshopMods = await findWorkshopMods(gamePath, steamAppId, send);
         if (workshopMods.error) {
             switch (workshopMods.error) {
                 case 'NON_STEAM': throw new Error(`This game does not appear to installed via Steam. ${workshopMods.detail}`);
-                case 'NO_WORKSHOP': throw new Error(`The Steam Workshop folder for this game does not exist. ${workshopMods.detail}`);
+                case 'NO_WORKSHOP': return send({ type: 'scancomplete', errors: [`Steam Workshop is not supported by this game. ${workshopMods.detail}`], total: 0, mods: {} });
+                case 'NO_WORKSHOP_FOLDER': throw new Error(`The Steam Workshop folder for this game does not exist. ${workshopMods.detail}`)
                 case 'UNKNOWN': throw new Error(`Unexpected error: ${workshopMods.detail}`);
                 case 'STEAM_API_ERROR': throw new Error(`Steam API error: ${workshopMods.detail}`);
                 default: throw new Error(`Unknown Workshop error: ${workshopMods satisfies never}`);
@@ -130,16 +128,14 @@ async function importMods(
         }
     }
 
-
-    // try {
-    //     await updateContentCatalogue(gameId, localAppData, successful, send);
-    // }
-    // catch(err) {
-    //     errors.push(`Error removing imported mods from ContentCatalog.txt: ${(err as Error).message}`);
-    // }
-
     send({ type: 'importcomplete', errors, total: modsToImport.length, successful: successful.length });
 }
+
+async function hardDeleteMod(gamePath: string, steamAppId: number) {
+
+}
+
+let watcher: ReviewWatcher | undefined;
 
 process.on('message', async (message) => {
     if (
@@ -154,7 +150,6 @@ process.on('message', async (message) => {
             return;
         }
         case 'scan': {
-            send({ type: 'message', level: 'info', message: `Scan props ${msg.gamePath} ${msg.steamAppId} ${Object.keys(msg).join(',')}` })
             await scan(msg.gamePath, msg.steamAppId);
             return;
         }
@@ -166,8 +161,23 @@ process.on('message', async (message) => {
             );
             return;
         }
+        case 'review': {
+            if (msg.enabled) {
+                watcher = new ReviewWatcher(msg.gamePath, send);
+                watcher.run();
+
+            }
+            else {
+
+            }
+            return;
+        }
+        case 'delete': {
+            await hardDeleteMod(msg.gamePath, msg.steamAppId);
+            return;
+        }
         default: {
-            send({ type: 'fatal', error: `Unknown message event: ${(msg as any)?.type}` });
+            send({ type: 'fatal', error: `Unknown message event: ${JSON.stringify(msg satisfies never)}` });
             return;
         }
     }

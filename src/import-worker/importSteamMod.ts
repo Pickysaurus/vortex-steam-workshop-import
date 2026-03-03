@@ -9,12 +9,16 @@ export type IMockedMod = {
         name: string;
         logicalFileName: string;
         author: string;
+        shortDescription: string;
         description: string;
         pictureUrl: string | undefined;
         installTime: string;
         version: string;
         notes: string;
         steamWorkshopId: string;
+        modId: string | number;
+        source: 'website';
+        url: string;
         fileMD5?: string;
         fileName?: string;
         fileSize?: number;
@@ -35,7 +39,7 @@ export function toVortexMod(mod: ISteamWorkshopEntry, vortexId: string) : IMocke
             author: 'Steam Workshop',
             installTime: new Date().toString(),
             version: mod.publishedfileid,
-            shortDescription: 'Imported from Bethesda.net',
+            shortDescription: 'Imported from Steam Workshop',
             description: mod.description,
             pictureUrl: mod.preview_url,
             notes: `Imported from Steam Workshop ${new Date().toLocaleDateString()}`,

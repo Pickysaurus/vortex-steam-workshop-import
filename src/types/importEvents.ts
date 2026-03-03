@@ -8,7 +8,9 @@ export type ImportEvent<TMod = unknown, TLog = string> =
     | { type: 'scancomplete', total: number, errors: string[], mods: { [id: string]: ISteamWorkshopEntry } }
     | { type: 'importedmod', mod: TMod }
     | { type: 'importprogress', done: number, total: number, message: string, detail?: string }
-    | { type: 'importcomplete', total: number, successful: number, errors: string[] };
+    | { type: 'importcomplete', total: number, successful: number, errors: string[] }
+    | { type: 'modremoved', id: number };
+    
 
 export type ImportMessage =
     | { type: 'cancel' }
@@ -19,3 +21,6 @@ export type ImportMessage =
         stagingFolder: string, downloadFolder: string, 
         createArchives: boolean 
       }
+    | { type: 'review', enabled: boolean }
+    | { type: 'delete', gamePath: string, steamAppId: number };
+      

@@ -33,3 +33,19 @@ export interface ISteamWorkshopEntry {
 interface ISteamTag {
   tag: string;
 }
+
+export interface ISteamGameInfoResponse {
+  [steamAppId: string] : {
+    success: boolean;
+    data: {
+      type: string;
+      name: string;
+      steam_appid: number;
+      required_age:  string;
+      is_free: boolean;
+      dlc: number[];
+      categories: { id: number, description: string }[];
+      [key: string]: unknown;
+    }
+  }
+}

@@ -6,16 +6,17 @@ import { TFunction } from "vortex-api/lib/util/i18n";
 
 interface IProps {
     t: TFunction;
-    state: 'loading' | 'importing' | 'ready';
+    state: 'loading' | 'importing' | 'ready' | 'review';
     workshopMods: { [id: string]: ISteamWorkshopEntry };
     selected: Set<string>;
     setSelected: (newSelection: Set<string>) => void;
     disabled: boolean;
     rescan: () => void;
     exists: (id: string) => boolean;
+    networkConnected: boolean,
 }
 
-export default function WorkshopModsList({ t, workshopMods, state, selected, setSelected, disabled, rescan, exists }: IProps) {
+export default function WorkshopModsList({ t, workshopMods, state, selected, setSelected, rescan, exists, networkConnected }: IProps) {
 
     const mods = workshopMods ? Object.values(workshopMods) : [];
 
@@ -58,9 +59,9 @@ export default function WorkshopModsList({ t, workshopMods, state, selected, set
                 </div>
             )}
             { workshopMods && mods.length === 0 && (
-                <div className='cover' style={{ flexDirection: 'column' }}>
-                    <p>{ t('No creations detected') }</p>
-                    <Button onClick={() => rescan()}>
+                <div className='cover' style={{ flexDirection: 'column', padding: '8px 16px' }}>
+                    <p>{ t('No Steam Workshop Mods detected') }</p>
+                    <Button onClick={() => rescan()} disabled={!networkConnected}>
                         <Icon name='refresh' /> {t('Check again')}
                     </Button>
                 </div>
@@ -83,11 +84,11 @@ export default function WorkshopModsList({ t, workshopMods, state, selected, set
 
 interface IRowProps {
     t: TFunction;
-    state: 'loading' | 'importing' | 'ready';
+    state: 'loading' | 'importing' | 'ready' | 'review';
     mod: ISteamWorkshopEntry, 
     selected: boolean, 
     setSelected: () => void,
-    exists: boolean,
+    exists: boolean
 }
 
 function WorkshopModRow({ t, state, mod, selected, setSelected, exists }: IRowProps) {
@@ -123,7 +124,7 @@ function WorkshopModRow({ t, state, mod, selected, setSelected, exists }: IRowPr
             </div>
             <div className='modInfo'>
                 <div className='modMeta'>{t('Files: {{total}} | Size: {{fileSize}}', { total: files?.length ?? 0, fileSize: size })}</div>
-                <div className='modMeta' title={String(time_installed)}>{t('Installed: {{time}}', { time: installTime })}</div>
+                <div className='modMeta' title={installTime.toString()}>{t('Installed: {{time}}', { time: installTime })}</div>
             </div>
         </div>
     )

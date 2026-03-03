@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from "path";
 import yazl from 'yazl';
-import { ISteamWorkshopEntry } from '../types/workshopEntries';
+import { ISteamGameInfoResponse, ISteamWorkshopEntry } from '../types/workshopEntries';
 import { ImportEvent } from '../types/importEvents';
 import { IMockedMod, toVortexMod } from './importSteamMod';
 import { createHash, randomBytes } from 'crypto';
@@ -10,7 +10,7 @@ type WorkshopModsResult =
     | { path: string, mods: { [id: string]: ISteamWorkshopEntry }, error: null }
     | { path: null, error: WorkshopErrorType, detail?: string };
 
-type WorkshopErrorType = 'NON_STEAM' | 'NO_WORKSHOP' | 'UNKNOWN' | 'STEAM_API_ERROR';
+type WorkshopErrorType = 'NON_STEAM' | 'NO_WORKSHOP' | 'NO_WORKSHOP_FOLDER' | 'UNKNOWN' | 'STEAM_API_ERROR';
 
 interface ISteamWorkshopAPIResponse {
     response: {
@@ -33,11 +33,16 @@ export class ImportSteamWorkshopModError extends Error {
     }
 }
 
-export async function findWorkshopMods(gamePath: string, steamAppId: number): Promise<WorkshopModsResult> {
+export async function findWorkshopMods(gamePath: string, steamAppId: number, send?: (ev: ImportEvent<any>) => void): Promise<WorkshopModsResult> {
     if (!steamAppId) return { path: null, error: 'NON_STEAM', detail: 'No Steam App ID in game extension' };
 
     const steamAppsIdx = gamePath.toLowerCase().indexOf('steamapps');
     if (steamAppsIdx === -1) return { path: null, error: 'NON_STEAM', detail: `SteamApps is not in path: ${gamePath}` };
+
+    // Check if this game even supports Steam Workshop
+    const hasWorkshop = await hasSteamWorkshop(steamAppId, send);
+    send?.({ type: 'message', level: 'debug', message: `Has Steam Workshop ${hasWorkshop ? 'TRUE' : 'FALSE'}` })
+    if (!hasWorkshop) return { path: null, error: 'NO_WORKSHOP', detail: 'Compatible games must include the "Steam Workshop" tag on the Steam store page.' };
 
     const steamAppsPath = gamePath.substring(0, steamAppsIdx + 9);
     const workshopFolder = path.join(steamAppsPath, 'workshop', 'content', String(steamAppId));
@@ -46,7 +51,7 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number): Pr
         await fs.promises.access(workshopFolder);
     }
     catch(err: unknown) {
-        return { path: null, error: 'NO_WORKSHOP', detail: `Error accessing path ${workshopFolder}: ${(err as Error)?.message}` };
+        return { path: null, error: 'NO_WORKSHOP_FOLDER', detail: `Error accessing path ${workshopFolder}: ${(err as Error)?.message}` };
     }
 
     // If we found a workshop folder, we can now start parsing the mods.
@@ -108,6 +113,23 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number): Pr
     }
     catch(err) {
         return { path: null, error: 'UNKNOWN', detail: `Unknown error: ${(err as Error)?.message}` }
+    }
+}
+
+async function hasSteamWorkshop(steamAppId: number, send?: (ev: ImportEvent<any>) => void): Promise<boolean> {
+    const steamApi = `https://store.steampowered.com/api/appdetails?appids=${steamAppId}`;
+    
+    try {
+        const res = await fetch(steamApi);
+        if (!res.ok) return false;
+        const json: ISteamGameInfoResponse = await res.json();
+        const gameInfo = json[steamAppId];
+        return !!gameInfo && gameInfo.success && !!gameInfo.data?.categories?.find(c => c.id === 30);
+
+    }
+    catch(e: unknown) {
+        send?.({ type: 'message', level: 'error', message: `Error getting Steam Workshop data: ${(e as Error)?.message} ${(e as Error).cause}` });
+        return true;
     }
 }
 
