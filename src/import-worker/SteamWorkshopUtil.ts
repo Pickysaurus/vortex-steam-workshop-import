@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from "path";
 import yazl from 'yazl';
+import { parse as parseAcf, stringify as stringifyAcf } from '@node-steam/vdf';
 import { ISteamGameInfoResponse, ISteamWorkshopEntry } from '../types/workshopEntries';
 import { ImportEvent } from '../types/importEvents';
 import { IMockedMod, toVortexMod } from './importSteamMod';
@@ -264,6 +265,56 @@ export async function createArchiveForMod(
     }
 }
 
-export async function removeWorkshopInstanceOfMod() {
+interface WorkshopACF {
+    AppWorkshop: {
+        appid: string;
+        SizeOnDisk: string;
+        NeedsUpdate: '0' | '1';
+        NeedsDownload: '0' | '1';
+        TimeLastUpdated: string;
+        TimeLastAppRan: string;
+        LastBuildID: string;
+        WorkshopItemsInstalled: {
+            [itemid: string]: {
+                size: string;
+                timeupdated: string;
+                manifest: string;
+            }
+        }
+	    WorkshopItemDetails: {
+            [itemId: string]: {
+                manifest: string;
+                timeupdated: string;
+                timetouched: string;
+                subscribedby: string;
+                latest_timeupdated: string;
+                latest_manifest: string;
+            }
+        }
 
+    }
+}
+
+export async function removeWorkshopInstanceOfMod(workshopPath: string, modId: string | number) {
+    const steamAppId = path.basename(workshopPath);
+    // Delete the mod folder
+    const modPath = path.join(workshopPath, String(modId));
+    await fs.promises.rm(modPath, { recursive: true, force: true });
+    // Parse in the ACF, update it and save out again.
+    const acfPath = getWorkshopACFPath(steamAppId, workshopPath);
+    const raw = await fs.promises.readFile(acfPath, { encoding: 'utf-8' });
+    const acf: WorkshopACF = parseAcf(raw);
+    acf.AppWorkshop.SizeOnDisk = String(parseInt(acf.AppWorkshop.SizeOnDisk) - parseInt(acf.AppWorkshop.WorkshopItemsInstalled[modId].size));
+    delete acf.AppWorkshop.WorkshopItemDetails[modId];
+    delete acf.AppWorkshop.WorkshopItemsInstalled[modId];
+    const out = stringifyAcf(acf);
+    await fs.promises.writeFile(acfPath, out);
+}
+
+function getWorkshopACFPath(steamAppId: string, workshopPath: string) {
+    const fileName = `appworkshop_${steamAppId}.acf`;
+    const idx = workshopPath.indexOf(path.sep, workshopPath.toLowerCase().indexOf('workshop'));
+    if (idx === -1) throw new Error('Could not locate Workshop ACF due to invalid workshop path');
+    const basePath = workshopPath.substring(0, idx);
+    return path.join(basePath, fileName);
 }

@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useSelector, useStore } from "react-redux";
-import { actions, MainContext, selectors, types, util, log } from "vortex-api";
+import { actions, MainContext, selectors, types, log } from "vortex-api";
 import { ISteamWorkshopEntry } from "../types/workshopEntries";
 import { defaultImportProgress, ImportProgressProps } from "../views/ProgressBar";
 import { createImportService } from '../util/importServiceHandler';
@@ -24,6 +24,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
     const [error, setError] = useState<IImportError>();
     const [tableState, setTableState] = useState<TableState>('loading');
     const [createArchives, setCreateArchives] = useState(true);
+    const [workshopPath, setWorkshopPath] = useState<string>();
 
     const stagingFolder: string = useSelector((state: types.IState) => selectors.installPath(state));
     const downloadFolder: string = useSelector((state: types.IState) => selectors.downloadPath(state));
@@ -83,7 +84,11 @@ export default function useSteamWorkshopImport(visible: boolean) {
         store.dispatch(
             actions.setDeploymentNecessary(gameId, true)
         )
-    }, []);
+    }, [ gameId ]);
+
+    const toggleReviewMode = useCallback((enable: boolean) => {
+        serviceRef.current?.toggleReviewWatcher(enable, workshopPath);
+    }, [ workshopPath ]);
 
     // Service Handler
     const handleEvent = useCallback((ev: ImportEvent<types.IMod, LogLevel>) => {
@@ -92,6 +97,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
         switch(ev.type) {
             case 'scancomplete':
                 setTableState('ready');
+                setWorkshopPath(ev.workshopPath);
                 if (ev.total === 0) setScanResults({});
                 else setScanResults(ev.mods);
                 if (ev.errors?.length) setError({
@@ -130,10 +136,11 @@ export default function useSteamWorkshopImport(visible: boolean) {
                     message: `Import complete${ev.errors.length ? ' with errors' : ''}`,
                     detail: ''
                 }));
-                setTableState('ready');
+                setTableState('review');
+                toggleReviewMode(true);
                 // Turn back on the download watcher
                 context.api.events.emit('enable-download-watch', true);
-                setSelected(new Set());
+                // setSelected(new Set());
                 if (ev.successful > 0) setDeploymentRequired();
                 if (ev.errors?.length) setError({
                     title: 'Import encountered errors',
@@ -153,11 +160,17 @@ export default function useSteamWorkshopImport(visible: boolean) {
                 break;
             case 'modremoved':
                 const { id } = ev;
-                if (id) selected.delete(String(id));
+                if (id) {
+                    setSelected(prev => {
+                        const next = new Set(prev);
+                        next.delete(id);
+                        return next;
+                    });
+                }
                 break;
             default: log('warn', `Unknown Steam Workshop Import Event: ${JSON.stringify(ev satisfies never)}`);         
         }
-    }, [addMod, addLocalDownload, setDownloadModInfo]);
+    }, [addMod, addLocalDownload, setDownloadModInfo, enableProfileMod, setDeploymentRequired, toggleReviewMode]);
 
     useEffect(() => {
         if (!visible) return;
@@ -170,6 +183,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
         startScan();
 
         return () => {
+            svc?.toggleReviewWatcher(false);
             off();
             svc.dispose();
             serviceRef.current = null;
@@ -180,7 +194,8 @@ export default function useSteamWorkshopImport(visible: boolean) {
 
     
     // Event callbacks
-    const startScan = () => {
+    const startScan = useCallback(() => {
+        if (!discoveryPath || !steamAppId) return;
         if (!networkConnected) {
             setTableState('ready');
             setScanResults({});
@@ -192,9 +207,9 @@ export default function useSteamWorkshopImport(visible: boolean) {
         setError(undefined);
         setTableState('loading');
         serviceRef.current?.scan(discoveryPath, steamAppId);
-    }
+    }, [ networkConnected, discoveryPath, steamAppId ]);
 
-    const startImport = () => {
+    const startImport = useCallback(() => {
         setProgress((p) => ({...p, state: 'running'}));
         setError(undefined);
         setTableState('importing');
@@ -210,14 +225,19 @@ export default function useSteamWorkshopImport(visible: boolean) {
             downloadFolder,
             createArchives
         );
-    }
+    }, [ discoveryPath, selected, gameId, steamAppId, stagingFolder, downloadFolder, createArchives ]);
 
-    const cancel = () => {
+    const manuallyDeleteMod = useCallback((modId: string) => {
+        serviceRef.current?.deleteMod(workshopPath, modId);
+    }, [ workshopPath ]);
+
+    const cancel = useCallback(() => {
         serviceRef.current?.cancel();
-    };
+    }, []);
 
     return {
         networkConnected,
+        workshopPath,
         mods,
         scanResults,
         selected,
@@ -229,6 +249,8 @@ export default function useSteamWorkshopImport(visible: boolean) {
         setCreateArchives,
         startScan,
         startImport,
+        toggleReviewMode,
+        manuallyDeleteMod,
         cancel
     }    
 }

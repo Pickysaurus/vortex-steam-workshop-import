@@ -1,8 +1,20 @@
 import path from 'path';
-import { fork, ChildProcess } from "child_process";
-import { ImportEvent as BaseImportEvent } from '../types/importEvents';
+import { fork, ChildProcess, MessageOptions, SendHandle } from "child_process";
+import { ImportEvent as BaseImportEvent, ImportMessage } from '../types/importEvents';
 import { types } from 'vortex-api';
 import { LogLevel } from 'vortex-api/lib/util/log';
+
+interface TypedChildProcess extends ChildProcess {
+    send(message: ImportMessage, callback?: (error: Error | null) => void): boolean;
+    send(message: ImportMessage, callback?: (error: Error | null) => void): boolean;
+        send(message: ImportMessage, sendHandle?: SendHandle, callback?: (error: Error | null) => void): boolean;
+        send(
+            message: ImportMessage,
+            sendHandle?: SendHandle,
+            options?: MessageOptions,
+            callback?: (error: Error | null) => void,
+        ): boolean;
+}
 
 type ImportEvent = BaseImportEvent<types.IMod, LogLevel>;
 
@@ -14,11 +26,11 @@ export function createImportService() {
         for (const fn of listeners) fn(ev);
     };
 
-    function ensureChildProcess() {
+    function ensureChildProcess(): TypedChildProcess {
         if (child) return child;
 
         const script = path.join(__dirname, "importWorker.js");
-        child = fork(script, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+        child = fork(script, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] }) as TypedChildProcess;
 
         child.on('message', (ev: ImportEvent) => emit(ev));
         child.on('error', (err) => emit({ type: 'fatal', error: String(err) }));
@@ -62,12 +74,12 @@ export function createImportService() {
         },
 
         
-        toggleReviewWatcher(enabled: boolean) {
-            ensureChildProcess().send({ type: 'review', enabled })
+        toggleReviewWatcher(enabled: boolean, workshopPath?: string) {
+            ensureChildProcess().send({ type: 'review', enabled, workshopPath });
         },
 
-        deleteMod(gamePath: string, steamAppId: number) {
-            ensureChildProcess().send({ type: 'delete', gamePath, steamAppId });
+        deleteMod(workshopPath: string, modId: string) {
+            ensureChildProcess().send({ type: 'delete', workshopPath, modId });
         },
         
         cancel() {

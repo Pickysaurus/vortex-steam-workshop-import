@@ -3,7 +3,8 @@ import { ImportEvent, ImportMessage } from '../types/importEvents';
 import { toVortexMod } from './importSteamMod';
 import { 
     createArchiveForMod, findWorkshopMods, 
-    importModToStagingFolder, ImportSteamWorkshopModError 
+    importModToStagingFolder, ImportSteamWorkshopModError, 
+    removeWorkshopInstanceOfMod
 } from './SteamWorkshopUtil';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
 import ReviewWatcher from './reviewWatcher';
@@ -30,10 +31,10 @@ async function scan(gamePath: string, steamAppId: number) {
                 default: throw new Error(`Unknown Workshop error: ${workshopMods satisfies never}`);
             }
         }
-        send({ type: 'scancomplete', total: Object.keys(workshopMods.mods).length, mods: workshopMods.mods, errors })
+        send({ type: 'scancomplete', total: Object.keys(workshopMods.mods).length, workshopPath: workshopMods.path, mods: workshopMods.mods, errors })
     }
     catch(err) {
-        send?.({ type: 'fatal', error: `Unable to detect Steam Workshop Mods: ${(err as Error).message}` });
+        send({ type: 'fatal', error: `Unable to detect Steam Workshop Mods: ${(err as Error).message}` });
     }
 }
 
@@ -131,11 +132,20 @@ async function importMods(
     send({ type: 'importcomplete', errors, total: modsToImport.length, successful: successful.length });
 }
 
-async function hardDeleteMod(gamePath: string, steamAppId: number) {
-
+async function hardDeleteMod(workshopPath: string, modId: string) {
+    try {
+        await removeWorkshopInstanceOfMod(workshopPath, String(modId));
+        send({
+            type: 'modremoved',
+            id: modId
+        });
+    }
+    catch(e: unknown) {
+        send({ type: 'fatal', error: `Failed to manually delete Steam Workshop Mod ${modId}: ${(e as Error)?.message}` });
+    }
 }
 
-let watcher: ReviewWatcher | undefined;
+let watcher: ReviewWatcher | null = null;
 
 process.on('message', async (message) => {
     if (
@@ -163,17 +173,17 @@ process.on('message', async (message) => {
         }
         case 'review': {
             if (msg.enabled) {
-                watcher = new ReviewWatcher(msg.gamePath, send);
+                watcher = new ReviewWatcher(msg.workshopPath, send);
                 watcher.run();
-
             }
             else {
-
+                watcher?.dispose();
+                watcher = null;
             }
             return;
         }
         case 'delete': {
-            await hardDeleteMod(msg.gamePath, msg.steamAppId);
+            await hardDeleteMod(msg.workshopPath, msg.modId);
             return;
         }
         default: {

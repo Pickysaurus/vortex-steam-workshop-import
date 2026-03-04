@@ -33,6 +33,7 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
+    "@node-steam/vdf": "^2.2.0",
     "react": "^19.2.3",
     "react-i18next": "^16.5.3",
     "react-redux": "^9.2.0",

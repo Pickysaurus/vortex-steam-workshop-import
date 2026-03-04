@@ -3,6 +3,7 @@ import { Icon, Spinner, util } from 'vortex-api';
 import Button from './Button';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
 import { TFunction } from "vortex-api/lib/util/i18n";
+import SteamWorkshopImportReview from './SteamWorkshopImportReview';
 
 interface IProps {
     t: TFunction;
@@ -14,9 +15,16 @@ interface IProps {
     rescan: () => void;
     exists: (id: string) => boolean;
     networkConnected: boolean,
+    toggleWatcher: (enable: boolean) => void;
+    deleteMod: (id: string | number) => void;
 }
 
-export default function WorkshopModsList({ t, workshopMods, state, selected, setSelected, rescan, exists, networkConnected }: IProps) {
+export default function WorkshopModsList({ 
+    t, workshopMods, state, 
+    selected, setSelected, rescan, 
+    exists, networkConnected,
+    toggleWatcher, deleteMod
+}: IProps) {
 
     const mods = workshopMods ? Object.values(workshopMods) : [];
 
@@ -36,6 +44,16 @@ export default function WorkshopModsList({ t, workshopMods, state, selected, set
             setSelected(all);
         }
     }
+
+    if (state === 'review') return (
+        <SteamWorkshopImportReview 
+            t={t}
+            workshopMods={workshopMods}
+            selected={selected}
+            toggleWatcher={toggleWatcher}
+            deleteMod={deleteMod}
+        />
+    );
 
     return (
         <div>
