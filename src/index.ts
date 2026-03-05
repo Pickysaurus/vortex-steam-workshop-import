@@ -1,14 +1,6 @@
-import { actions, log, selectors, types } from 'vortex-api';
+import { actions, selectors, types } from 'vortex-api';
 import * as path from 'path';
-import WorkshopImport from './views/WorkshopImport';
-
-const supportedGameIds = [
-  'skyrim', 'ahatintime', 'enderal', 'darkestdungeon', 'dawnofman', 'divinityoriginalsin2', 
-  'divinityoriginalsin2definitiveedition', 'faleanniversary', 'galacticcivilisations3', 'kenshi',
-  'kerbalspaceprogram', 'legendofgrimrock', 'mbwarband', 'neverwinternightsenhancededition', 
-  'oxygennotincluded', 'payday2', 'pillarsofeternity2deadfire', 'portal2', 'prisonarchitect',
-  'rimworld', 'xcom2' 
-];
+import WorkshopImport from './views/SteamWorkshopImport';
 
 function main(context: types.IExtensionContext) {
   // Abort for non-windows installs. 
@@ -20,10 +12,14 @@ function main(context: types.IExtensionContext) {
   // Add an import button to the mods tab.
   context.registerAction('mod-icons', 120, 'import', {}, 'Import From Steam Workshop', () => {
     context.api.store.dispatch(actions.setDialogVisible('workshop-import'));
-  }, (instanceIds) => {
+  }, () => {
     // Make sure this is a game we know can have Steam Workshop
-    const gameId = selectors.activeGameId(context.api.store.getState());
-    return supportedGameIds.includes(gameId);
+    // If the game extension doesn't include the Steam App ID, we won't show it.
+    const state = context.api.getState();
+    const gameId = selectors.activeGameId(state);
+    const game = selectors.gameById(state, gameId);
+    const steamAppId = game?.details?.steamAppId;
+    return !!steamAppId;
   });
 
   context.once(() => {

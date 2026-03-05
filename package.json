@@ -1,13 +1,14 @@
 {
   "name": "import-from-steam-workshop",
-  "version": "1.0.6",
+  "version": "2.0.0",
   "description": "Import mods managed by Steam Workshop into Vortex",
   "main": "./out/index.js",
   "repository": "",
   "scripts": {
-    "webpack": "node ./node_modules/webpack/bin/webpack --config webpack.config.js --stats-error-details --progress --profile --color",
+    "webpack": "node ./node_modules/webpack/bin/webpack --config webpack.config.js --progress --profile --color",
     "bundle7z": "7z a -t7z sample-extension.7z .\\dist\\index.js .\\dist\\info.json",
-    "build": "npm run webpack && copyfiles -f src/stylesheets/workshop-import.scss dist && copyfiles -f src/images/* dist && extractInfo"
+    "build": "npm run webpack && npm run copyassets && extractInfo",
+    "copyassets": "cpy \"src/stylesheets/*\" dist --flat && cpy \"src/images/*\" dist --flat"
   },
   "author": "Pickysaurus",
   "license": "GPL-3.0",
@@ -17,33 +18,27 @@
     ]
   },
   "devDependencies": {
-    "7z-bin": "Nexus-Mods/7z-bin",
-    "@types/i18next": "^12.1.0",
-    "@types/node": "^12.0.10",
-    "@types/react": "^16.8.22",
+    "@types/node": "^25.2.1",
+    "@types/react": "^19.2.8",
     "@types/redux": "^3.6.0",
     "@types/redux-thunk": "^2.1.0",
-    "bluebird": "^3.5.5",
-    "cache-loader": "^4.1.0",
-    "clean-webpack-plugin": "^4.0.0",
-    "copyfiles": "^2.1.1",
-    "fork-ts-checker-webpack-plugin": "^7.2.13",
-    "i18next": "^17.0.4",
-    "pnp-webpack-plugin": "^1.7.0",
-    "react": "^16.8.6",
-    "react-bootstrap": "^0.32.4",
-    "source-map-loader": "^4.0.1",
-    "thread-loader": "^3.0.4",
-    "ts-loader": "^9.4.2",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.9.4",
+    "@types/yazl": "^3.3.0",
+    "cpy-cli": "^7.0.0",
+    "electron": "^40.0.0",
+    "fs": "^0.0.1-security",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
     "vortex-api": "Nexus-Mods/vortex-api",
-    "webpack": "^5.76.0",
-    "webpack-cli": "^5.0.1"
+    "webpack": "^5.104.1",
+    "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "axios": "^1.2.1",
-    "react-i18next": "^11.3.5",
-    "react-redux": "^7.2.0"
+    "@node-steam/vdf": "^2.2.0",
+    "react": "^19.2.3",
+    "react-i18next": "^16.5.3",
+    "react-redux": "^9.2.0",
+    "redux-act": "^1.8.0",
+    "shortid": "^2.2.15",
+    "yazl": "^3.3.1"
   }
 }
