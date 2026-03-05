@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Icon, Spinner, util } from 'vortex-api';
 import Button from './Button';
 import { ISteamWorkshopEntry } from '../types/workshopEntries';
 import { TFunction } from "vortex-api/lib/util/i18n";
-import SteamWorkshopImportReview from './SteamWorkshopImportReview';
 
 interface IProps {
     t: TFunction;
@@ -15,7 +14,6 @@ interface IProps {
     rescan: () => void;
     exists: (id: string) => boolean;
     networkConnected: boolean,
-    toggleWatcher: (enable: boolean) => void;
     deleteMod: (id: string | number) => void;
 }
 
@@ -23,7 +21,7 @@ export default function WorkshopModsList({
     t, workshopMods, state, 
     selected, setSelected, rescan, 
     exists, networkConnected,
-    toggleWatcher, deleteMod
+    deleteMod
 }: IProps) {
 
     const mods = workshopMods ? Object.values(workshopMods) : [];
@@ -40,20 +38,11 @@ export default function WorkshopModsList({
             setSelected(new Set());
         }
         else {
-            const all = new Set(Object.keys(workshopMods));
+            const readyToImport = Object.keys(workshopMods).filter(k => !exists(k));
+            const all = new Set(readyToImport);
             setSelected(all);
         }
     }
-
-    if (state === 'review') return (
-        <SteamWorkshopImportReview 
-            t={t}
-            workshopMods={workshopMods}
-            selected={selected}
-            toggleWatcher={toggleWatcher}
-            deleteMod={deleteMod}
-        />
-    );
 
     return (
         <div>
@@ -93,6 +82,7 @@ export default function WorkshopModsList({
                     selected={selected.has(m.publishedfileid)}
                     setSelected={() => toggleSelect(m.publishedfileid)}
                     exists={exists(`steamworkshop-${m.publishedfileid}`)}
+                    deleteManually={() => deleteMod(m.publishedfileid)}
                 />
             ))}
         </div>
@@ -106,26 +96,47 @@ interface IRowProps {
     mod: ISteamWorkshopEntry, 
     selected: boolean, 
     setSelected: () => void,
-    exists: boolean
+    exists: boolean,
+    deleteManually: () => void,
 }
 
-function WorkshopModRow({ t, state, mod, selected, setSelected, exists }: IRowProps) {
+function WorkshopModRow({ t, state, mod, selected, setSelected, exists, deleteManually }: IRowProps) {
+    const [showFallback, setShowFallback] = useState(false);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const base = `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.publishedfileid}`
+    const steamAppUrl = `steam://openurl/${base}`;
+
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+        }   
+    }, []);
     
     const { 
         title, publishedfileid: version, files, 
         file_size, time_installed
     } = mod;
 
-    const installTime = util.relativeTime(new Date(time_installed * 1000), t);
+    const installedAt = new Date(time_installed * 1000)
+    const installTime = util.relativeTime(installedAt, t);
     const size = util.bytesToString(file_size || 0);
 
     const classNames = ['row', 'body'];
-    if (exists) classNames.push('imported');
+
+    const openUrl = (uri: string) => util.opn(uri).catch(() => undefined);
+    
+    const onClickUnsub = () => {
+        openUrl(steamAppUrl);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            setShowFallback(true);
+        }, 5000);
+    }
 
     return (
         <div className={classNames.join(' ')} style={{ opacity: exists ? '0.4' : '1' }}>
             <div className='checkbox'>
-                { exists && <span title={'Already imported'}><Icon name='toggle-enabled' /></span> }
+                { exists && <span title={t('Already imported')}><Icon name='toggle-enabled' /></span> }
                 { (state === 'importing' && selected && !exists) && <Spinner /> }
                 { (state !== 'importing' || (state === 'importing' && !selected)) && !exists && (
                     <input 
@@ -140,10 +151,22 @@ function WorkshopModRow({ t, state, mod, selected, setSelected, exists }: IRowPr
                 <div className='modName'>{ title }</div>
                 <div className='modMeta'>{t('Version: {{version}}', { version })}</div>
             </div>
-            <div className='modInfo'>
-                <div className='modMeta'>{t('Files: {{total}} | Size: {{fileSize}}', { total: files?.length ?? 0, fileSize: size })}</div>
-                <div className='modMeta' title={installTime.toString()}>{t('Installed: {{time}}', { time: installTime })}</div>
-            </div>
+            {!exists && <div className='modInfo'>
+                <div className='modMeta' title={files.join('\n')}>{t('Files: {{total}} | Size: {{fileSize}}', { total: files?.length ?? 0, fileSize: size })}</div>
+                <div className='modMeta' title={installedAt.toLocaleString()}>{t('Installed: {{time}}', { time: installTime })}</div>
+            </div>}
+            {exists && <div className='modInfo'>
+                <div>
+                    {!showFallback && <Button onClick={onClickUnsub} title={t('Open Steam to unsubscribe from the Workshop item')}>
+                        <Icon name='open-in-browser' style={{ marginRight: '4px' }} />
+                        {t('Unsubscribe')}
+                    </Button>}
+                    {showFallback && <Button onClick={deleteManually} title={t('If unsubscribing fails, you can also delete the file manually, but Steam may redownload it later.')} className='btn-danger'>
+                        <Icon name='toggle-uninstalled' style={{ marginRight: '4px' }} />
+                        {t('Delete Manually')}
+                    </Button>}
+                </div>
+            </div>}
         </div>
     )
 }

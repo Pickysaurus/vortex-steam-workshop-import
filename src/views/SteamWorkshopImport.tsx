@@ -1,4 +1,4 @@
-import { Icon, Modal, Spinner } from 'vortex-api';
+import { Icon, Modal, Spinner, util } from 'vortex-api';
 import React from "react";
 import { useTranslation } from 'react-i18next';
 import useSteamWorkshopImport from '../hooks/useSteamWorkshopImport';
@@ -14,8 +14,8 @@ interface IProps {
 
 const secondaryButtonStyle: React.CSSProperties = {
     backgroundColor: 'transparent',
-    borderColor: 'rgba(255,255,255,.4)',
-    color: 'rgba(255,255,255,.4)',
+    borderColor: 'rgba(255,255,255,.5)',
+    color: 'rgba(255,255,255,.5)',
 }
 
 export default function SteamWorkshopImport({ visible, onHide }: IProps) {
@@ -24,8 +24,8 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
         networkConnected, workshopPath,
         mods, error, selected, tableState,
         scanResults, setSelected,
-        progress, createArchives, setCreateArchives,
-        toggleReviewMode, manuallyDeleteMod,
+        progress, createArchives, 
+        setCreateArchives, manuallyDeleteMod,
         startImport, startScan, cancel
     } = useSteamWorkshopImport(visible);
 
@@ -42,7 +42,7 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                         <img src={`file://${__dirname}/steam-to-vortex.png`} style={{ maxHeight: '75px' }} />
                     </div>
                     <p>{t('This tool will allow you to import mods installed through Steam Workshop into Vortex.')}</p>
-                    <p>{t('Workshop Path: {{workshopPath}}', { workshopPath: workshopPath ?? 'Unknown' })}</p>
+                    <p>{t('After importing a mod to Vortex, you should unsubscribe from the Steam Workshop page to prevent possible conflicts.')}</p>
                 </div>
                 <WorkshopModsList 
                     t={t}
@@ -55,7 +55,6 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                     exists={(id) => !!mods?.[id]}
                     networkConnected={networkConnected}
                     deleteMod={manuallyDeleteMod}
-                    toggleWatcher={toggleReviewMode}
                 />
                 {error && (
                     <ErrorAlert title={error.title} detail={error.detail} />
@@ -79,6 +78,16 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                     >
                         <Icon name='refresh' />
                     </Button>
+                    <Button
+                        onClick={() => util.opn(workshopPath).catch(() => undefined)}
+                        title={workshopPath ? t(`Open Steam Workshop folder at ${workshopPath}`) : t('Workshop folder not found.')}
+                        disabled={!workshopPath}
+                        className='btn-secondary'
+                        style={secondaryButtonStyle}
+                    >
+                        <Icon name='open-in-browser' style={{ marginRight: '4px' }} />
+                        {t('Open Folder')}
+                    </Button>
                     <Button 
                         onClick={() => cancel()} 
                         disabled={tableState === 'ready'} 
@@ -101,7 +110,7 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                 </div>
             </Modal.Body>
             <Modal.Footer>
-                <Button disabled={!canCancel} onClick={() => onHide()}>{t('Close')}</Button>
+                <Button disabled={tableState === 'importing'} onClick={() => onHide()}>{t('Close')}</Button>
             </Modal.Footer>
         </Modal>
     )

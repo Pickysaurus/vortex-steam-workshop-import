@@ -1,0 +1,101 @@
+name: Publish to Nexus Mods
+
+on:
+  workflow_dispatch:
+    inputs:
+          version:
+            description: 'Release version - package.json version will be used by default'
+            required: false
+
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Extensions
+    runs-on: ubuntu-latest
+
+    outputs: 
+      version: ${{ steps.meta.outputs.version }}
+      zip_name: ${{ steps.meta.outputs.zip_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node (with npm cache)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Compute build metadata
+        id: meta
+        shell: bash
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="$PKG_VERSION"
+          fi
+
+          ZIP_NAME="Bethesda Import.zip"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+
+          echo "Using version: $VERSION"
+          echo "Zip name: $ZIP_NAME"
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify dist exists
+        run: |
+          test -d dist
+          echo "dist folder found ✅"
+
+      - name: Zip dist
+        run: |
+          cd dist
+          zip -r "../${{ steps.meta.outputs.zip_name }}" .
+          cd ..
+          ls -lh "${{ steps.meta.outputs.zip_name }}"
+
+      - name: Upload dist zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bethesda-Import
+          path: ${{ steps.meta.outputs.zip_name }}
+          if-no-files-found: error
+  upload:
+    name: Upload to Nexus Mods
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Get Extension Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Bethesda-Import
+
+      - name: Upload to Nexus Mods
+        uses: Nexus-Mods/upload-action@main
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ vars.NEXUSMODS_FILE_ID }}
+          game_domain_name:  ${{ vars.NEXUSMODS_GAME_DOMAIN }}
+          display_name: Import from Steam Workshop          
+          filename: ${{ needs.build.outputs.zip_name }}
+          version: ${{ github.event.inputs.version || needs.build.outputs.version }}
+
+          

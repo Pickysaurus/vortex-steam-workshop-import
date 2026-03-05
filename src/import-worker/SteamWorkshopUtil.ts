@@ -42,7 +42,6 @@ export async function findWorkshopMods(gamePath: string, steamAppId: number, sen
 
     // Check if this game even supports Steam Workshop
     const hasWorkshop = await hasSteamWorkshop(steamAppId, send);
-    send?.({ type: 'message', level: 'debug', message: `Has Steam Workshop ${hasWorkshop ? 'TRUE' : 'FALSE'}` })
     if (!hasWorkshop) return { path: null, error: 'NO_WORKSHOP', detail: 'Compatible games must include the "Steam Workshop" tag on the Steam store page.' };
 
     const steamAppsPath = gamePath.substring(0, steamAppsIdx + 9);
@@ -304,7 +303,7 @@ export async function removeWorkshopInstanceOfMod(workshopPath: string, modId: s
     const acfPath = getWorkshopACFPath(steamAppId, workshopPath);
     const raw = await fs.promises.readFile(acfPath, { encoding: 'utf-8' });
     const acf: WorkshopACF = parseAcf(raw);
-    acf.AppWorkshop.SizeOnDisk = String(parseInt(acf.AppWorkshop.SizeOnDisk) - parseInt(acf.AppWorkshop.WorkshopItemsInstalled[modId].size));
+    acf.AppWorkshop.SizeOnDisk = String(parseInt(acf.AppWorkshop.SizeOnDisk) - parseInt(acf.AppWorkshop.WorkshopItemsInstalled[modId]?.size));
     delete acf.AppWorkshop.WorkshopItemDetails[modId];
     delete acf.AppWorkshop.WorkshopItemsInstalled[modId];
     const out = stringifyAcf(acf);

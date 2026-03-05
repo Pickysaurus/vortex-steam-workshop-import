@@ -50,6 +50,8 @@ export default function useSteamWorkshopImport(visible: boolean) {
 
     const activeStateRef = useRef({ gameId, discoveryPath, stagingFolder, downloadFolder, steamAppId });
 
+    const initialScanComplete = useRef(false);
+
     useEffect(() => {
         activeStateRef.current = { gameId, discoveryPath, stagingFolder, downloadFolder, steamAppId };
     }, [gameId, discoveryPath, stagingFolder, downloadFolder, steamAppId]);
@@ -136,11 +138,11 @@ export default function useSteamWorkshopImport(visible: boolean) {
                     message: `Import complete${ev.errors.length ? ' with errors' : ''}`,
                     detail: ''
                 }));
-                setTableState('review');
+                setTableState('ready');
                 toggleReviewMode(true);
                 // Turn back on the download watcher
                 context.api.events.emit('enable-download-watch', true);
-                // setSelected(new Set());
+                setSelected(new Set());
                 if (ev.successful > 0) setDeploymentRequired();
                 if (ev.errors?.length) setError({
                     title: 'Import encountered errors',
@@ -166,32 +168,22 @@ export default function useSteamWorkshopImport(visible: boolean) {
                         next.delete(id);
                         return next;
                     });
+                    setScanResults(prev => {
+                        const next = {...prev};
+                        delete next[id];
+                        return next;
+                    })
                 }
                 break;
             default: log('warn', `Unknown Steam Workshop Import Event: ${JSON.stringify(ev satisfies never)}`);         
         }
     }, [addMod, addLocalDownload, setDownloadModInfo, enableProfileMod, setDeploymentRequired, toggleReviewMode]);
 
+    const eventHandlerRef = useRef(handleEvent);
+
     useEffect(() => {
-        if (!visible) return;
-
-        const svc = createImportService();
-        serviceRef.current = svc;
-
-        const off = svc.onEvent(handleEvent);
-
-        startScan();
-
-        return () => {
-            svc?.toggleReviewWatcher(false);
-            off();
-            svc.dispose();
-            serviceRef.current = null;
-            setProgress(defaultImportProgress);
-            context.api.events.emit('enable-download-watch', true);
-        };
-    }, [visible, handleEvent]);
-
+        eventHandlerRef.current = handleEvent;
+    }, [handleEvent])
     
     // Event callbacks
     const startScan = useCallback(() => {
@@ -216,6 +208,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
         // Turn off the download watcher so we can import downloads in peace!
         context.api.events.emit('enable-download-watch', false);
         if (!discoveryPath || !selected.size) return;
+        console.log('Sending import command', serviceRef.current);
         serviceRef.current?.import(
             [...selected], 
             discoveryPath, 
@@ -235,6 +228,33 @@ export default function useSteamWorkshopImport(visible: boolean) {
         serviceRef.current?.cancel();
     }, []);
 
+    // Handle the service Ref creation and management.
+    useEffect(() => {
+        if (!visible) return;
+
+        const svc = createImportService();
+        serviceRef.current = svc;
+        const off = svc.onEvent((ev) => eventHandlerRef.current(ev));
+
+        return () => {
+            svc?.toggleReviewWatcher(false);
+            off();
+            svc.dispose();
+            serviceRef.current = null;
+            setProgress(defaultImportProgress);
+            context.api.events.emit('enable-download-watch', true);
+            initialScanComplete.current = false;
+        };
+    }, [visible]);
+
+    // Handle the initial scan.
+    useEffect(() => {
+        if (visible && serviceRef.current && !initialScanComplete.current) {
+            startScan();
+            initialScanComplete.current = true;
+        }
+    }, [visible, startScan]);
+
     return {
         networkConnected,
         workshopPath,
@@ -249,7 +269,6 @@ export default function useSteamWorkshopImport(visible: boolean) {
         setCreateArchives,
         startScan,
         startImport,
-        toggleReviewMode,
         manuallyDeleteMod,
         cancel
     }    
