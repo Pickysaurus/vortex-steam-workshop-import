@@ -42,7 +42,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
     const steamAppId = useSelector((state: types.IState) => {
         const gameId = selectors.activeGameId(state);
         const game = selectors.gameById(state, gameId);
-        return game.details?.steamAppId;
+        return game?.details?.steamAppId;
     })
     const profile: types.IProfile | undefined = useSelector((state: types.IState) => selectors.activeProfile(state));
 
