@@ -92,7 +92,7 @@ jobs:
         uses: Nexus-Mods/upload-action@main
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
-          file_grouo_id: ${{ vars.NEXUSMODS_GROUP_ID }}
+          file_group_id: ${{ vars.NEXUSMODS_GROUP_ID }}
           display_name: Import from Steam Workshop          
           filename: ${{ needs.build.outputs.zip_name }}
           version: ${{ github.event.inputs.version || needs.build.outputs.version }}
