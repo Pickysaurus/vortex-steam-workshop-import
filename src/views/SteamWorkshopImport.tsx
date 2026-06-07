@@ -79,7 +79,7 @@ export default function SteamWorkshopImport({ visible, onHide }: IProps) {
                         <Icon name='refresh' />
                     </Button>
                     <Button
-                        onClick={() => util.opn(workshopPath).catch(() => undefined)}
+                        onClick={() => util.opn(workshopPath!).catch(() => undefined)}
                         title={workshopPath ? t(`Open Steam Workshop folder at ${workshopPath}`) : t('Workshop folder not found.')}
                         disabled={!workshopPath}
                         className='btn-secondary'

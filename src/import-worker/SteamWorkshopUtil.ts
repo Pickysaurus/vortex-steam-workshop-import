@@ -158,12 +158,16 @@ export async function importModToStagingFolder(
         if (!stat) await fs.promises.mkdir(stagingFolderPath);
 
         // Get a list of files to copy
-        const files = await fs.promises.readdir(modPath, { recursive: true });
+        const files = await fs.promises.readdir(modPath, { recursive: true, withFileTypes: true });
 
         // Import the files
         for (const file of files) {
-            const src = path.join(modPath, file);
-            const dest = path.join(stagingFolderPath, file);
+            const src = path.join(modPath, file.name);
+            const dest = path.join(stagingFolderPath, file.name);
+            if (file.isDirectory()) {
+                await fs.promises.mkdir(dest, { recursive: true });
+                continue;
+            }
             // Report progress
             const newProgress = {
                 ...progress,
@@ -177,7 +181,7 @@ export async function importModToStagingFolder(
                 await fs.promises.copyFile(src, dest);
             }
             catch(e: unknown) {
-                failedImports[file] = (e as Error).message;
+                failedImports[file.name] = (e as Error).message;
             }
         }
 
@@ -217,10 +221,12 @@ export async function createArchiveForMod(
     }
     send(newProgress);
     try {
-        const files = await fs.promises.readdir(stagingFolderPath);
+        const files = await fs.promises.readdir(stagingFolderPath, { recursive: true });
         const zipList = files.map(f => ({ abs: path.join(stagingFolderPath, f), zip: f }));
         const zip = new yazl.ZipFile();
         for (const zipFile of zipList) {
+            const stat = await fs.promises.stat(zipFile.abs);
+            if (stat?.isDirectory()) continue;
             zip.addFile(zipFile.abs, zipFile.zip);
         }
         // Write out the zip file

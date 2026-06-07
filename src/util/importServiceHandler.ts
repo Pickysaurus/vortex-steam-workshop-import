@@ -34,7 +34,7 @@ export function createImportService() {
 
         child.on('message', (ev: ImportEvent) => emit(ev));
         child.on('error', (err) => emit({ type: 'fatal', error: String(err) }));
-        child.on('exit', (code) => {
+        child.on('exit', (code: number) => {
             emit({ type: 'exit', code });
             child = null;
         });
@@ -75,6 +75,7 @@ export function createImportService() {
 
         
         toggleReviewWatcher(enabled: boolean, workshopPath?: string) {
+            if (!workshopPath) return;
             ensureChildProcess().send({ type: 'review', enabled, workshopPath });
         },
 

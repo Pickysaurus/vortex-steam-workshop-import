@@ -10,7 +10,9 @@ export default function ErrorAlert({ title, detail }: IErrorProps) {
     return (
         <div className="nxm-banner-warning">
             <h2><Icon name='warning' /> {title}</h2>
-            <p>{detail}</p>
+            <p style={{ maxHeight: '20vh', overflow: 'auto', overflowWrap: 'break-word' }}>
+                {detail}
+            </p>
         </div>
     )
 }

@@ -221,6 +221,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
     }, [ discoveryPath, selected, gameId, steamAppId, stagingFolder, downloadFolder, createArchives ]);
 
     const manuallyDeleteMod = useCallback((modId: string) => {
+        if (!workshopPath) return;
         serviceRef.current?.deleteMod(workshopPath, modId);
     }, [ workshopPath ]);
 

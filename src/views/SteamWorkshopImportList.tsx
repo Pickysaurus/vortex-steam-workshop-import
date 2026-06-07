@@ -7,14 +7,14 @@ import { TFunction } from "vortex-api/lib/util/i18n";
 interface IProps {
     t: TFunction;
     state: 'loading' | 'importing' | 'ready' | 'review';
-    workshopMods: { [id: string]: ISteamWorkshopEntry };
+    workshopMods?: { [id: string]: ISteamWorkshopEntry };
     selected: Set<string>;
     setSelected: (newSelection: Set<string>) => void;
     disabled: boolean;
     rescan: () => void;
     exists: (id: string) => boolean;
     networkConnected: boolean,
-    deleteMod: (id: string | number) => void;
+    deleteMod: (id: string) => void;
 }
 
 export default function WorkshopModsList({ 
@@ -38,7 +38,7 @@ export default function WorkshopModsList({
             setSelected(new Set());
         }
         else {
-            const readyToImport = Object.keys(workshopMods).filter(k => !exists(k));
+            const readyToImport = Object.keys(workshopMods ?? {}).filter(k => !exists(k));
             const all = new Set(readyToImport);
             setSelected(all);
         }
@@ -117,7 +117,7 @@ function WorkshopModRow({ t, state, mod, selected, setSelected, exists, deleteMa
         file_size, time_installed
     } = mod;
 
-    const installedAt = new Date(time_installed * 1000)
+    const installedAt = new Date((time_installed ?? 0) * 1000)
     const installTime = util.relativeTime(installedAt, t);
     const size = util.bytesToString(file_size || 0);
 
@@ -152,7 +152,7 @@ function WorkshopModRow({ t, state, mod, selected, setSelected, exists, deleteMa
                 <div className='modMeta'>{t('Version: {{version}}', { version })}</div>
             </div>
             {!exists && <div className='modInfo'>
-                <div className='modMeta' title={files.join('\n')}>{t('Files: {{total}} | Size: {{fileSize}}', { total: files?.length ?? 0, fileSize: size })}</div>
+                <div className='modMeta' title={files?.join('\n')}>{t('Files: {{total}} | Size: {{fileSize}}', { total: files?.length ?? 0, fileSize: size })}</div>
                 <div className='modMeta' title={installedAt.toLocaleString()}>{t('Installed: {{time}}', { time: installTime })}</div>
             </div>}
             {exists && <div className='modInfo'>
