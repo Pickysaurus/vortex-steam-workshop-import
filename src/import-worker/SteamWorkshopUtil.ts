@@ -158,16 +158,12 @@ export async function importModToStagingFolder(
         if (!stat) await fs.promises.mkdir(stagingFolderPath);
 
         // Get a list of files to copy
-        const files = await fs.promises.readdir(modPath, { recursive: true, withFileTypes: true });
+        const files = await fs.promises.readdir(modPath, { recursive: true });
 
         // Import the files
         for (const file of files) {
-            const src = path.join(modPath, file.name);
-            const dest = path.join(stagingFolderPath, file.name);
-            if (file.isDirectory()) {
-                await fs.promises.mkdir(dest, { recursive: true });
-                continue;
-            }
+            const src = path.join(modPath, file);
+            const dest = path.join(stagingFolderPath, file);
             // Report progress
             const newProgress = {
                 ...progress,
@@ -178,16 +174,18 @@ export async function importModToStagingFolder(
 
             // Copy the file
             try {
-                await fs.promises.copyFile(src, dest);
+                const stat = await fs.promises.stat(src);
+                if (stat?.isDirectory()) await fs.promises.mkdir(dest, { recursive: true });
+                else await fs.promises.copyFile(src, dest);
             }
             catch(e: unknown) {
-                failedImports[file.name] = (e as Error).message;
+                failedImports[file] = (e as Error).message;
             }
         }
 
         if (Object.keys(failedImports).length) {
             // Delete the staging folder and report the error
-            await fs.promises.rm(stagingFolderPath, { recursive: true }).catch(() => undefined);
+            // await fs.promises.rm(stagingFolderPath, { recursive: true }).catch(() => undefined);
             throw new ImportSteamWorkshopModError(
                 'import-files',
                 'Error copying files to staging folder',
@@ -201,6 +199,7 @@ export async function importModToStagingFolder(
 
     } 
     catch(e: unknown) {
+        send?.({ type: 'message', level: 'error', message: `Error copying files: ${(e as Error)?.message} ${JSON.stringify((e as ImportSteamWorkshopModError).fileErrors)}` });
         // Remove the staging folder if we managed to create it
         await fs.promises.rm(stagingFolderPath, { recursive: true }).catch(() => undefined);
         // If it's an error we throw, just pass it on, otherwise reformat it.

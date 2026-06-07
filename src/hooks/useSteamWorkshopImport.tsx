@@ -156,6 +156,7 @@ export default function useSteamWorkshopImport(visible: boolean) {
                 break;
             case 'message':
                 log(ev.level, ev.message, ev.metadata);
+                if (ev.level === 'error') console.error(ev.message, ev.metadata);
                 break;
             case 'exit':
                 log('debug', 'Steam Workshop import child process exited with code: '+ev.code);

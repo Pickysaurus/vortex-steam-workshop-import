@@ -1,6 +1,6 @@
 {
   "name": "import-from-steam-workshop",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Import mods managed by Steam Workshop into Vortex",
   "main": "./out/index.js",
   "repository": "",
@@ -25,7 +25,6 @@
     "@types/yazl": "^3.3.0",
     "cpy-cli": "^7.0.0",
     "electron": "^40.0.0",
-    "fs": "^0.0.1-security",
     "ts-loader": "^9.5.4",
     "typescript": "^5.9.3",
     "vortex-api": "Nexus-Mods/vortex-api",
