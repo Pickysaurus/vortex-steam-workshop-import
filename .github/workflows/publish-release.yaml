@@ -89,10 +89,10 @@ jobs:
           name: Bethesda-Import
 
       - name: Upload to Nexus Mods
-        uses: Nexus-Mods/upload-action@main
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
-          file_group_id: ${{ vars.NEXUSMODS_GROUP_ID }}
+          file_id: ${{ vars.NEXUSMODS_GROUP_ID }}
           display_name: Import from Steam Workshop          
           filename: ${{ needs.build.outputs.zip_name }}
           version: ${{ github.event.inputs.version || needs.build.outputs.version }}
